@@ -71,35 +71,8 @@
 			<v-card-title><v-icon class="mr-2">mdi-history</v-icon>{{ $t('plugins.WorkshopActivity.activity.activity_history') }}</v-card-title>
 			<v-card-text>
 				<v-row density="compact">
-					<v-col cols="12" sm="3">
-						<v-menu v-model="actSinceMenu" :close-on-content-click="false" transition="scale-transition" min-width="auto">
-							<template #activator="{ props: activator }">
-								<v-text-field
-									v-model="actSince" :label="$t('plugins.WorkshopActivity.activity.from')" readonly density="compact" hide-details color="primary"
-									v-bind="activator"
-								>
-									<template #prepend-inner>
-										<v-icon color="primary">mdi-calendar-outline</v-icon>
-									</template>
-								</v-text-field>
-							</template>
-							<v-date-picker v-model="sinceDate" hide-header color="primary" @update:model-value="actSinceMenu = false" />
-						</v-menu>
-					</v-col>
-					<v-col cols="12" sm="3">
-						<v-menu v-model="actUntilMenu" :close-on-content-click="false" transition="scale-transition" min-width="auto">
-							<template #activator="{ props: activator }">
-								<v-text-field
-									v-model="actUntil" :label="$t('plugins.WorkshopActivity.activity.to')" readonly density="compact" hide-details color="primary"
-									v-bind="activator"
-								>
-									<template #prepend-inner>
-										<v-icon color="primary">mdi-calendar-outline</v-icon>
-									</template>
-								</v-text-field>
-							</template>
-							<v-date-picker v-model="untilDate" hide-header color="primary" @update:model-value="actUntilMenu = false" />
-						</v-menu>
+					<v-col cols="12" sm="6" class="d-flex align-center">
+						<range-picker v-model="actRange" />
 					</v-col>
 					<v-col cols="12" sm="3">
 						<v-select v-model="actKind" :items="kindItems" item-title="text" item-value="value" :label="$t('plugins.WorkshopActivity.activity.type')" density="compact" hide-details />
@@ -286,22 +259,19 @@ import { ts } from './shared-t.js'
 import { noticeOf } from './activity-notice.js'
 import { styles, STYLE_OTHER, cancelled } from './event-styles.js'
 import { sectionColor } from './section-colors.js' // the color of each section (--wf-sec)
+import RangePicker from './RangePicker.vue' // vue/_shared
+import { relative, resolve, asTexts, same } from './range-picker.js' // vue/_shared
 
 const { canDo, identityTick } = useRole()
 const theme = useTheme()
-
-const today0 = new Date()
-const sevenDaysAgo = new Date(today0.getTime() - 7 * 24 * 60 * 60 * 1000)
-const asDate = d => d.toISOString().slice(0, 10)
 
 const armedId = ref(null)
 const cleanArmed = ref(false)
 const deleteMsg = ref('')
 const deleteErr = ref(false)
-const actSince = ref(asDate(sevenDaysAgo))
-const actUntil = ref(asDate(today0))
-const actSinceMenu = ref(false)
-const actUntilMenu = ref(false)
+// the time range of the history: the last 7 days until it is changed (a relative range moves with the clock; range-picker.js)
+const defaultRange = relative(7, 'days')
+const actRange = ref(defaultRange)
 const kindAll = KIND_ALL
 const actKind = ref(KIND_ALL)
 const activityRows = ref([])
@@ -327,34 +297,28 @@ const onlyMine = ref(false) // only the events done by the person who is logged 
 const historyError = ref(null) // the last failure of the history (an Error): said in words, with a button to try again
 let armTimer = null
 
-// v-date-picker of Vuetify 4 works with Date objects; the page keeps the day as 'YYYY-MM-DD'
-function dayModel(source) {
-	return computed({
-		get: () => (source.value ? new Date(source.value + 'T12:00:00') : null),
-		set: d => { if (d) source.value = dateLocal(d instanceof Date ? d : new Date(d)) }
-	})
-}
-const sinceDate = dayModel(actSince)
-const untilDate = dayModel(actUntil)
-
 // the filters that are on now (the dates only when they are not the default last 7 days): shown above the list with a way to clear them
-const defaultSince = asDate(sevenDaysAgo)
-const defaultUntil = asDate(today0)
+// the two moments of the range now, as the texts the service takes
+function rangeTexts() {
+	return asTexts(resolve(actRange.value, new Date()))
+}
 const activeFilters = computed(() => {
 	const t = (k, p) => i18n.t('plugins.WorkshopActivity.activity.' + k, p)
 	const out = []
 	if (actKind.value !== kindAll) out.push(t('filter_type', { t: kindLabel(actKind.value) }))
 	if ((actText.value || '').trim()) out.push(t('filter_text', { t: actText.value.trim() }))
 	if (onlyMine.value) out.push(t('filter_mine'))
-	if (actSince.value !== defaultSince || actUntil.value !== defaultUntil) out.push(t('filter_range', { from: actSince.value, to: actUntil.value }))
+	if (!same(actRange.value, defaultRange)) {
+		const r = rangeTexts()
+		out.push(t('filter_range', { from: r.from.slice(0, 16).replace('T', ' '), to: r.to.slice(0, 16).replace('T', ' ') }))
+	}
 	return out
 })
 function clearFilters() {
 	actKind.value = kindAll
 	actText.value = ''
 	onlyMine.value = false
-	actSince.value = defaultSince
-	actUntil.value = defaultUntil
+	actRange.value = defaultRange
 	searchActivity(0)
 }
 const kindItems = computed(() => [{ text: i18n.t('plugins.WorkshopActivity.activity.all_paren'), value: kindAll }, ...activityKinds.value])
@@ -565,7 +529,7 @@ function detailGroups(ev) {
 }
 // arguments of activity.list / activity.clear for the current filter
 function queryFilter(withText = true, forList = false) {
-	const a = { from: actSince.value, to: actUntil.value }
+	const a = rangeTexts()
 	const type = kindFilter(actKind.value)
 	if (type) a.type = type
 	if (hideService.value) a.exclude = ['service']
@@ -594,7 +558,7 @@ async function exportCsv() {
 		const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' })
 		const a = document.createElement('a')
 		a.href = URL.createObjectURL(blob)
-		a.download = 'activity-' + actSince.value + '_' + actUntil.value + '.csv'
+		a.download = 'activity-' + rangeTexts().from.slice(0, 10) + '_' + rangeTexts().to.slice(0, 10) + '.csv'
 		document.body.appendChild(a)
 		a.click()
 		a.remove()

@@ -71,35 +71,8 @@
 			<v-card-title><v-icon class="mr-2">mdi-history</v-icon>{{ $t('plugins.WorkshopActivity.activity.activity_history') }}</v-card-title>
 			<v-card-text>
 				<v-row dense>
-					<v-col cols="12" sm="3">
-						<v-menu v-model="actSinceMenu" :close-on-content-click="false" transition="scale-transition" offset-y min-width="auto">
-							<template v-slot:activator="{ on, attrs }">
-								<v-text-field
-									v-model="actSince" :label="$t('plugins.WorkshopActivity.activity.from')" readonly dense hide-details color="primary"
-									v-bind="attrs" v-on="on"
-								>
-									<template v-slot:prepend-inner>
-										<v-icon color="primary">mdi-calendar-outline</v-icon>
-									</template>
-								</v-text-field>
-							</template>
-							<v-date-picker v-model="actSince" no-title color="primary" @input="actSinceMenu = false" />
-						</v-menu>
-					</v-col>
-					<v-col cols="12" sm="3">
-						<v-menu v-model="actUntilMenu" :close-on-content-click="false" transition="scale-transition" offset-y min-width="auto">
-							<template v-slot:activator="{ on, attrs }">
-								<v-text-field
-									v-model="actUntil" :label="$t('plugins.WorkshopActivity.activity.to')" readonly dense hide-details color="primary"
-									v-bind="attrs" v-on="on"
-								>
-									<template v-slot:prepend-inner>
-										<v-icon color="primary">mdi-calendar-outline</v-icon>
-									</template>
-								</v-text-field>
-							</template>
-							<v-date-picker v-model="actUntil" no-title color="primary" @input="actUntilMenu = false" />
-						</v-menu>
+					<v-col cols="12" sm="6" class="d-flex align-center">
+						<range-picker v-model="actRange" />
 					</v-col>
 					<v-col cols="12" sm="3">
 						<v-select v-model="actKind" :items="[{ text: $t('plugins.WorkshopActivity.activity.all_paren'), value: kindAll }, ...activityKinds]" :label="$t('plugins.WorkshopActivity.activity.type')" dense hide-details />
@@ -287,21 +260,17 @@ import { ts } from './shared-t.js'
 import { noticeOf } from './activity-notice.js'
 import { styles, STYLE_OTHER, cancelled } from './event-styles.js'
 import { sectionColor } from './section-colors.js' // the color of each section (--wf-sec)
+import RangePicker from './RangePicker.vue' // vue/_shared36
+import { relative, resolve, asTexts, same } from './range-picker.js' // vue/_shared36
 
 export default {
 	mixins: [roleMixin],
-	components: { SideTabs, PageHeader, ServiceNotice: ServiceNotice, StartupPanel: StartupPanel, ErrorNotice, ActivityNotices },
+	components: { RangePicker, SideTabs, PageHeader, ServiceNotice: ServiceNotice, StartupPanel: StartupPanel, ErrorNotice, ActivityNotices },
 	data() {
-		const today = new Date();
-		const hace7dias = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-		const asDate = d => d.toISOString().slice(0, 10);
 		return {
-			defaultSince: asDate(hace7dias), defaultUntil: asDate(today), // the dates the page opens with: a different range counts as a filter
+			defaultRange: relative(7, 'days'), // the range the page opens with (the last 7 days): a different one counts as a filter
 			armedId: null, cleanArmed: false, deleteMsg: '', deleteErr: false,
-			actSince: asDate(hace7dias),
-			actUntil: asDate(today),
-			actSinceMenu: false,
-			actUntilMenu: false,
+			actRange: relative(7, 'days'),
 			kindAll: KIND_ALL,
 			actKind: KIND_ALL,
 			activityRows: [],
@@ -336,7 +305,10 @@ export default {
 			if (this.actKind !== KIND_ALL) out.push(t('filter_type', { t: this.kindLabel(this.actKind) }));
 			if ((this.actText || '').trim()) out.push(t('filter_text', { t: this.actText.trim() }));
 			if (this.onlyMine) out.push(t('filter_mine'));
-			if (this.actSince !== this.defaultSince || this.actUntil !== this.defaultUntil) out.push(t('filter_range', { from: this.actSince, to: this.actUntil }));
+			if (!same(this.actRange, this.defaultRange)) {
+				const r = this.rangeTexts();
+				out.push(t('filter_range', { from: r.from.slice(0, 16).replace('T', ' '), to: r.to.slice(0, 16).replace('T', ' ') }));
+			}
 			return out;
 		},
 		secColor() {
@@ -468,12 +440,15 @@ export default {
 		clearTimeout(this._armTimer);
 	},
 	methods: {
+		// the two moments of the range now, as the texts the service takes
+		rangeTexts() {
+			return asTexts(resolve(this.actRange, new Date()));
+		},
 		clearFilters() {
 			this.actKind = KIND_ALL;
 			this.actText = '';
 			this.onlyMine = false;
-			this.actSince = this.defaultSince;
-			this.actUntil = this.defaultUntil;
+			this.actRange = this.defaultRange;
 			this.searchActivity(0);
 		},
 		// the history is stored in Spanish; the service adds description_en for DWC in English
@@ -570,7 +545,7 @@ export default {
 		},
 		// arguments of activity.list / activity.clear for the current filter
 		queryFilter(withText = true, forList = false) {
-			const a = { from: this.actSince, to: this.actUntil };
+			const a = this.rangeTexts();
 			const type = kindFilter(this.actKind);
 			if (type) a.type = type;
 			if (this.hideService) a.exclude = ['service'];
@@ -599,7 +574,7 @@ export default {
 				const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
 				const a = document.createElement('a');
 				a.href = URL.createObjectURL(blob);
-				a.download = 'activity-' + this.actSince + '_' + this.actUntil + '.csv';
+				a.download = 'activity-' + this.rangeTexts().from.slice(0, 10) + '_' + this.rangeTexts().to.slice(0, 10) + '.csv';
 				document.body.appendChild(a);
 				a.click();
 				a.remove();

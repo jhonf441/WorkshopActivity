@@ -1,5 +1,13 @@
 # WorkshopActivity -- historial de versiones
 
+## 2.7.9 -- 2026-10-30
+
+- Range picker: the button of the 3.6 line shows its range; the side bar group is called Probing
+
+## 2.7.8 -- 2026-10-30
+
+- The history takes a time range like CloudWatch (quick, relative, absolute)
+
 ## 2.7.7 -- 2026-10-30
 
 - Manifest: sbcRequired true (needs WorkshopService); side bar keeps the group names
