@@ -1,5 +1,9 @@
 # WorkshopActivity -- historial de versiones
 
+## 2.7.10 -- 2026-10-30
+
+- The side bar scrolls inside when it is taller than the window
+
 ## 2.7.9 -- 2026-10-30
 
 - Range picker: the button of the 3.6 line shows its range; the side bar group is called Probing
