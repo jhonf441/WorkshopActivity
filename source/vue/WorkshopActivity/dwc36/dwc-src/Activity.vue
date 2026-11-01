@@ -257,6 +257,8 @@ import { visibleItems } from './role-view.js'
 import { currentIdentity } from './workshop-auth.js'
 import { errorText } from './friendly-error.js'
 import { ts } from './shared-t.js'
+import { exchangeExportCsv } from './data-exchange-ui.js'
+import { ACTIVITY_CSV_COLUMNS, activityCsvRows, activityCsvBase } from './activity-csv.js'
 import { noticeOf } from './activity-notice.js'
 import { styles, STYLE_OTHER, cancelled } from './event-styles.js'
 import { sectionColor } from './section-colors.js' // the color of each section (--wf-sec)
@@ -564,21 +566,10 @@ export default {
 					total = r.total || 0;
 					filas.push(...(r.rows || []));
 				}
-				const esc = v => {
-					const t = v === null || v === undefined ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v));
-					return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
-				};
-				const lines = ['id,ts,type,mode,description,duration_s,energy_kwh,detail,user'].concat(
-					filas.map(f => [f.id, f.ts, f.kind, f.mode, f.description, f.duration_s, f.consumption_kwh, f.detail, f.user].map(esc).join(','))
-				);
-				const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
-				const a = document.createElement('a');
-				a.href = URL.createObjectURL(blob);
-				a.download = 'activity-' + this.rangeTexts().from.slice(0, 10) + '_' + this.rangeTexts().to.slice(0, 10) + '.csv';
-				document.body.appendChild(a);
-				a.click();
-				a.remove();
-				setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+				if (!exchangeExportCsv(activityCsvBase(this.rangeTexts()), ACTIVITY_CSV_COLUMNS, activityCsvRows(filas)).ok) {
+					this.deleteErr = true;
+					this.deleteMsg = ts('exchange_export_failed');
+				}
 			} catch (e) {
 				this.deleteErr = true;
 				this.deleteMsg = errorText(e, ts);

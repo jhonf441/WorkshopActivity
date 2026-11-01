@@ -239,7 +239,6 @@ const MODES_SCHEDULE = [
 const SECONDS_VIDEO = [2, 3, 4, 5, 6, 8, 10].map(n => ({ value: n, text: n + ' s' }))
 
 const cameras = ref([]) // [{id, name}] of the camera relay (empty = no camera service)
-const noticeCamera = ref('main') // camera of the photo / video of the notifications (default)
 const destServer = ref('')
 const destTopic = ref('')
 const testing = ref(false)
@@ -257,6 +256,8 @@ let topicTimer = null
 const hasCamera = computed(() => pluginActive('camera'))
 // Published by the backend (notifier.py) as WorkshopService plugin data.
 const notice = computed(() => noticeOf())
+// the camera of the photo / video of every type that does not choose its own: the notifier's (config.default_camera of notifications.get)
+const noticeCamera = computed(() => (notice.value && notice.value.config.default_camera) || 'main')
 const destinationChanged = computed(() => !!notice.value && (destServer.value !== notice.value.config.server || destTopic.value !== notice.value.config.topic))
 const scheduleCfg = computed(() => (notice.value && notice.value.config.schedule) || { active: false, since: '22:00', until: '07:00', mode: 'mute' })
 const scheduleChanged = computed(() => hourSince.value !== scheduleCfg.value.since || hourUntil.value !== scheduleCfg.value.until)
@@ -328,12 +329,11 @@ function priorities(t) {
 	// the factory one of each type marked, to be able to go back to it
 	return PRIORITIES.map(p => (p.value === t.priority ? { value: p.value, text: p.text + i18n.t('plugins.WorkshopActivity.activity.default') } : p))
 }
-// cameras known by the relay and the one the notifications use by default
+// cameras of the list of the camera service (the one the notifications use by default is the notifier's: noticeCamera)
 async function readCameras() {
 	try {
 		const r = await api('camera.status')
 		cameras.value = Array.isArray(r.cameras) ? r.cameras : []
-		noticeCamera.value = (r.service && r.service.notice_camera) || 'main'
 	} catch (e) {
 		cameras.value = []
 	}
@@ -345,13 +345,8 @@ function cameraItems(withDefault) {
 	return [{ value: '', text: by ? i18n.t('plugins.WorkshopActivity.activity.default_camera_named', { name: by.name || by.id }) : i18n.t('plugins.WorkshopActivity.activity.default_camera') }].concat(items)
 }
 async function setCameraNotice(id) {
-	// camera relay service settings (API camera.service with the changes)
-	try {
-		await api('camera.service', { changes: { notice_camera: id } })
-	} catch (e) {
-		noticeError.value = e
-	}
-	readCameras()
+	// the notifier's option, not a setting of the camera service
+	await noticeCmd('option', { default_camera: id || 'auto' })
 }
 function setOption(kind, letter, v) {
 	// letter of the old command -> argument of notifications.option

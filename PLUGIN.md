@@ -122,7 +122,7 @@ Picture 4: "Quiet hours" and "Which events to notify and how", with the first tw
 - What: the camera whose photo or video is attached and the video length (5 s). The video arrives as a second silent notice.
 - Where: top of "Which events to notify and how" (picture 4).
 - How: pick the camera and the length.
-- Watch out: with no camera the notice goes without attachment; photos and videos of all notices are turned off together on the Camera page.
+- Watch out: with no camera the notice goes without attachment; whether a notice carries a photo or a video is chosen per type in its card (the fire notice goes without one by default).
 
 #### Per-type card (notify, attachment, priority, hours, test)
 - What: one card per event type (Job started, Job finished or cancelled, errors, emergency, fire ...): switch to notify, "Test" for that type, Attachment (None, Photo, Clip), Priority, camera and the "Hours" tick (obey quiet hours).
@@ -159,7 +159,7 @@ Viewer: reads summary and history. Operator: can send the test notice. Technicia
 
 ## 6. API operations used
 
-`activity.list`, `activity.summary`, `activity.delete`, `activity.clear`, `activity.log`, `notifications.get`, `notifications.type`, `notifications.mute`, `camera.status`, `camera.service`.
+`activity.list`, `activity.summary`, `activity.delete`, `activity.clear`, `activity.log`, `notifications.get`, `notifications.type`, `notifications.mute`, `notifications.option` (also the default camera of the alerts), `camera.status` (the list of cameras).
 
 ## 7. Troubleshooting
 

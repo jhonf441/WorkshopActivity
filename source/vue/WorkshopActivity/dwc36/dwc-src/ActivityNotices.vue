@@ -245,7 +245,6 @@ export default {
 	data() {
 		return {
 			cameras: [], // [{id, name}] of the camera relay (empty = no camera service)
-			noticeCamera: 'main', // camera of the photo / video of the notifications (default)
 			destServer: '',
 			destTopic: '',
 			testing: false,
@@ -269,6 +268,10 @@ export default {
 		// Published by the backend (notifier.py) as WorkshopService plugin data.
 		notice() {
 			return noticeOf(this.$store);
+		},
+		// the camera of the photo / video of every type that does not choose its own: the notifier's (config.default_camera of notifications.get)
+		noticeCamera() {
+			return (this.notice && this.notice.config.default_camera) || 'main';
 		},
 		destinationChanged() {
 			return !!this.notice && (this.destServer !== this.notice.config.server || this.destTopic !== this.notice.config.topic);
@@ -352,12 +355,11 @@ export default {
 			// the factory one of each type marked, to be able to go back to it
 			return priorities.map(p => (p.value === t.priority ? { value: p.value, text: p.text + i18n.t('plugins.WorkshopActivity.activity.default') } : p));
 		},
-		// cameras known by the relay and the one the notifications use by default
+		// cameras of the list of the camera service (the one the notifications use by default is the notifier's: noticeCamera)
 		async readCameras() {
 			try {
 				const r = await api('camera.status');
 				this.cameras = Array.isArray(r.cameras) ? r.cameras : [];
-				this.noticeCamera = (r.service && r.service.notice_camera) || 'main';
 			} catch (e) {
 				this.cameras = [];
 			}
@@ -369,13 +371,8 @@ export default {
 			return [{ value: '', text: by ? i18n.t('plugins.WorkshopActivity.activity.default_camera_named', { name: by.name || by.id }) : i18n.t('plugins.WorkshopActivity.activity.default_camera') }].concat(items);
 		},
 		async setCameraNotice(id) {
-			// camera relay service settings (API camera.service with the changes)
-			try {
-				await api('camera.service', { changes: { notice_camera: id } });
-			} catch (e) {
-				this.noticeError = e;
-			}
-			this.readCameras();
+			// the notifier's option, not a setting of the camera service
+			await this.noticeCmd('option', { default_camera: id || 'auto' });
 		},
 		setOption(kind, letter, v) {
 			// letter of the old command -> argument of notifications.option
