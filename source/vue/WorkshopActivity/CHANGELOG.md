@@ -1,5 +1,13 @@
 # WorkshopActivity -- historial de versiones
 
+## 2.7.17 -- 2026-11-04
+
+- ErrorNotice: no second sign-in notice (the page bar chip says it)
+
+## 2.7.16 -- 2026-11-04
+
+- Start-up card locked without a session; shared help tip; session chip class
+
 ## 2.7.15 -- 2026-11-03
 
 - Session: standard login notice (shared ErrorNotice)
