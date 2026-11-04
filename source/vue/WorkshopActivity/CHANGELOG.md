@@ -1,5 +1,9 @@
 # WorkshopActivity -- historial de versiones
 
+## 2.7.15 -- 2026-11-03
+
+- Session: standard login notice (shared ErrorNotice)
+
 ## 2.7.14 -- 2026-10-31
 
 - Activity: the notifier option default_camera chooses the camera of the notices

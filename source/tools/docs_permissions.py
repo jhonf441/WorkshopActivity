@@ -24,6 +24,7 @@ WHAT = {
     "objectModelReadWrite": "read the state of the machine and publish its own data in it",
     "registerHttpEndpoints": "answer on its own address (an API endpoint under /machine/<Id>/)",
     "readSystem": "read files under 0:/sys",
+    "readMacros": "read files under 0:/macros",
     "writeSystem": "lock files under 0:/sys (the history database needs it)",
     "fileSystemAccess": "read and write files outside the DSF folders (keys, camera files)",
     "launchProcesses": "start programs (ffmpeg, pinctrl, systemctl, sudo shutdown)",
@@ -36,16 +37,18 @@ FACTS = {
         risk="High (backend with broad permissions; it can shut the system down)",
         writes=["`0:/sys/workshop/` (settings, data, history database `duet.db`, macros it generates, work zones, backups)",
                 "`/opt/dsf/conf/workshop-secrets.json` and `workshop-users.json` (mode 600), `workshop-camera.key`"],
-        system=["`/etc/sudoers.d/dsf-power`, only if you want the shutdown / restart buttons: you create it by hand (see the security document)",
+        system=["`/etc/sudoers.d/dsf-power`, only if you want the shutdown / restart buttons: you create it by hand (steps below)",
                 "the G-code bridge (`sudo bridge/install.sh`): systemd unit, polkit rule and `/opt/workshop-bridge`; `sudo bridge/install.sh uninstall` removes them",
                 "ports: the camera relay (8090 by default, all interfaces; `camera_relay.bind` keeps it on the Pi) and the G-code bridge (23)",
                 "`ffmpeg` for timelapses and snapshots; `tinytuya` for a Tuya energy meter"],
-        notes=["Without users, everybody who reaches DWC is an administrator and the relay and the bridge are open to the network: create the first administrator in the Users section."]),
+        notes=["Without users, everybody who reaches DWC is an administrator and the relay and the bridge are open to the network: create the first administrator in the Users section."],
+        howto=['**How to: the shutdown / restart rule (sudoers)**', '', '1. On the Pi run `sudo visudo -f /etc/sudoers.d/dsf-power` and write this single line, then save:', '   `dsf ALL=(root) NOPASSWD: /usr/sbin/shutdown, /usr/sbin/reboot`', '2. Check the syntax: `sudo visudo -c` (it must report that the files parsed OK). Check what `dsf` may run: `sudo -l -U dsf`.', '3. Test without shutting down: `sudo -u dsf sudo -n -l /usr/sbin/shutdown` prints the path when the rule works and an error when it does not. The real test is the *Shut down now* button, which powers the Pi off.', '4. Undo: `sudo rm /etc/sudoers.d/dsf-power`. Without the file those buttons log an error and the system keeps running.', '', '**How to: the G-code bridge**', '', '1. From the `bridge` folder of the WorkshopService sources, on the Pi: `sudo ./install.sh` (the same command updates it later). It copies the code to `/opt/workshop-bridge`, writes and starts the unit `workshop-gcode-bridge.service` and writes the polkit rule `49-workshop-gcode-bridge.rules`, which lets the `dsf` user start and stop only that unit.', '2. Check: `systemctl status workshop-gcode-bridge`, or the "G-code bridge" section of the System service page.', '3. Undo: `sudo ./install.sh uninstall` removes the unit, the rule and `/opt/workshop-bridge` (your data in `0:/sys/workshop` stays); `sudo ./install.sh no-control` removes only the polkit rule (the page can then no longer start or stop the bridge).', '', '**About AppArmor**', '', '- DSF writes the profile `/etc/apparmor.d/dsf.<PluginId>` from the manifest when the plugin is INSTALLED, not when it is only reloaded or restarted. The permissions you approve in DWC become its lines (details and measurements: `docs/PERMISSIONS.md` of the WorkshopService repository).', '- To see whether it blocks something: `journalctl -k | grep DENIED | grep Workshop` (no output means no denial).', '- If the profile is old or a feature is denied after an update that changed the permissions, install the plugin again from DWC so DSF rewrites the profile, then check the command above once more.']),
     "WorkshopControlBar": dict(
         risk="Medium (buttons that shut the machine down or run your macros)",
         writes=["its buttons and groups in `0:/sys/workshop/config/`"],
         system=["the shutdown and restart buttons need the optional sudo rule of the service (`/etc/sudoers.d/dsf-power`)"],
-        notes=["\"Shut down now\" cuts the power of EVERYTHING through the Tuya breaker if you configured one; it asks for confirmation."]),
+        notes=["\"Shut down now\" cuts the power of EVERYTHING through the Tuya breaker if you configured one; it asks for confirmation."],
+        howto=['**How to: the shutdown / restart rule**', '', '"Shut down now", "Shut down when done" and the full restart run `sudo -n shutdown` / `sudo -n reboot` as the `dsf` user, so they need the sudoers rule. Create it, check it and undo it as described in the section "How to: the shutdown / restart rule (sudoers)" of [WorkshopService](../WorkshopService/README.md): `sudo visudo -f /etc/sudoers.d/dsf-power`, line `dsf ALL=(root) NOPASSWD: /usr/sbin/shutdown, /usr/sbin/reboot`, check with `sudo visudo -c`, undo with `sudo rm /etc/sudoers.d/dsf-power`. Without it the buttons log an error and the system keeps running.']),
     "WorkshopJog": dict(
         risk="Medium-high (moves the machine)",
         writes=["its settings and saved positions in `0:/sys/workshop/`", "the macros it installs into `0:/sys/workshop/macros/` (for example `workzeroaxis.g`, `jogFreeSet.g`)"],
@@ -109,6 +112,31 @@ FACTS = {
         writes=["its devices, buses and profiles under `0:/sys/workshop/`"],
         system=["the `dsf` user must be in the `dialout` group to open the USB-RS485 adapter", "Python package `pyserial` in its own venv"],
         notes=["Its API applies the roles before any write to a bus. A device with no axis only warns: it never pauses a job."]),
+    "WorkshopModel": dict(
+        risk="Medium (it changes global variables that your macros read, and sends the G-code you confirm)",
+        api="machine",  # no backend: the page talks to the board through DWC itself
+        writes=["the persistence macro `0:/sys/workshop-globals.g` for the globals you mark as persistent (generated by the plugin; you include it from `config.g`)",
+                "its presets in `0:/sys/workshop-model-presets.json`, its snapshots of the model in `0:/sys/workshop-model-snapshots.json` and, in SBC mode, the watch history with the memory of the usage finder in `0:/sys/workshop-model-watch.json`"],
+        system=[],
+        notes=["It needs no backend and no DSF permissions: it talks to the board through the file and G-code API of DWC itself (`rr_` on a standalone Duet, DSF with a Raspberry Pi).",
+               "The functions that need a Raspberry Pi (history kept on the Pi, background usage index, persistence applied at boot) turn on by themselves in SBC mode and are hidden on a standalone Duet.",
+               "RRF cannot delete a global until a restart: the plugin says so instead of offering a delete button.",
+               "The expression tester only sends `echo` or `M409` through the command preview, one line, and refuses an expression that starts with `>` (a write to a file)."]),
+    "WorkshopModelAgent": dict(
+        risk="Low-medium (own Python process on the Pi; it reads the object model and the macros and writes only its own folder; it sends no G-code)",
+        writes=["its folder `0:/sys/workshop-model-agent/`: `settings.json` (written by its page), `history.sqlite` (with `-wal` / `-shm`), "
+                "`snapshots/` and `snapshots/kept/`, `usage.json`, `state.json`",
+                "its log `agent.log` in the plugin folder (`/opt/dsf/plugins/WorkshopModelAgent/dsf/`, cut at 512 KB, deleted with the plugin)"],
+        system=["Python package `dsf-python` (the version of your DSF line) in its own venv, created by DSF at install"],
+        notes=["It needs a Duet in SBC mode (it is a program on the Pi) and depends on no other plugin; Model Explorer finds it at run time.",
+               "`commandExecution` is used for three commands only: WriteMessage (its notices), EvaluateExpression of `state.upTime` at start and "
+               "ResolvePath of `0:/sys`; it sends no G-code, so nothing it does moves or heats the machine. The list measured on the Pi is "
+               "pending: `docs/plugins/WorkshopModelAgent/PERMISSIONS.md`.",
+               "No port and no network: its four endpoints (`/machine/WorkshopModelAgent/status`, `history`, `usage`, `action`) are served by DWC's own "
+               "web server, which checks the DWC session first, and reach the agent over the DSF socket.",
+               "It reads `0:/sys/config.g`, `0:/sys/workshop-globals.g` and the `.g` files of `0:/sys` and `0:/macros`; it never edits them.",
+               "Notices are DWC messages (warning or error); with WorkshopService installed its event watcher records them in Activity and the phone "
+               "gets the kinds you switched on there. Nothing is deleted without a notice first: snapshots over a limit wait a grace period."]),
 }
 
 
@@ -119,11 +147,13 @@ def manifest(pid):
             p = os.path.join(TP, base, pid, "plugin.json")
             if os.path.isfile(p):
                 path = p
+    if path is None or not os.path.isfile(path):
+        return None  # the plugin folder is not in this tree yet (another branch): nothing to generate
     return json.load(open(path, encoding="utf-8"))
 
 
-def section(pid):
-    m, f = manifest(pid), FACTS[pid]
+def section(pid, m):
+    f = FACTS[pid]
     perms = m.get("sbcPermissions") or []
     out = [START, "", "## Permissions and what it changes", "",
            "Risk: **%s**. Read this before installing; the full document is `security.md` of the Workshop plugins." % f["risk"], ""]
@@ -132,6 +162,9 @@ def section(pid):
                 "| Permission | What it lets the plugin do |", "|---|---|"]
         out += ["| `%s` | %s |" % (p, WHAT.get(p, "see the DSF documentation")) for p in perms]
         out += [""]
+    elif f.get("api") == "machine":
+        out += ["**DSF permissions:** none. It is a page of DWC (it runs in your browser) and talks to the board through the file and G-code API of DWC "
+                "itself (`rr_` on a standalone Duet, DSF with a Raspberry Pi); it does not use `WorkshopService`.", ""]
     else:
         out += ["**DSF permissions:** none. It is a page of DWC (it runs in your browser) and everything it does goes through the API of `WorkshopService`, "
                 "which applies the roles (viewer, operator, technician, administrator) in the server.", ""]
@@ -144,6 +177,8 @@ def section(pid):
         out += ["**Files it writes:**"] + ["- " + w for w in f["writes"]] + [""]
     if f["system"]:
         out += ["**What it needs outside the zip** (each one is a separate step you do on purpose and can undo):"] + ["- " + s for s in f["system"]] + [""]
+    if f.get("howto"):
+        out += f["howto"] + [""]
     if f["notes"]:
         out += ["**Safety notes:**"] + ["- " + n for n in f["notes"]] + [""]
     out += ["Uninstalling removes the plugin folder; your data in `0:/sys/workshop/` and `/opt/dsf/conf/workshop-*.json` stays.", "", END]
@@ -165,8 +200,12 @@ def main():
     check = "--check" in sys.argv
     stale = []
     for pid in FACTS:
+        m = manifest(pid)
+        if m is None:
+            print("%s: no plugin.json in this tree, skipped" % pid)
+            continue
         readme = os.path.join(TP, "docs", "plugins", pid, "README.md")
-        new = apply(readme, section(pid))
+        new = apply(readme, section(pid, m))
         if new != open(readme, encoding="utf-8").read():
             stale.append(pid)
             if not check:
