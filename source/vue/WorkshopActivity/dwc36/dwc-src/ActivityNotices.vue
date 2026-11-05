@@ -2,6 +2,7 @@
 	<v-card class="mb-3">
 		<v-card-title>
 			{{ $t('plugins.WorkshopActivity.activity.phone_notifications') }}
+			<help-tip :title="ht('notices_title')" :what="ht('notices_what')" :why="ht('notices_why')" :how="ht('notices_how')" />
 			<v-spacer />
 			<v-switch
 				v-if="notice" :input-value="notice.config.active" dense hide-details class="mt-0"
@@ -24,6 +25,7 @@
 				<div class="act-section-title">
 					<span class="act-badge"><v-icon small color="white">mdi-server-network</v-icon></span>
 					{{ $t('plugins.WorkshopActivity.activity.server') }} / {{ $t('plugins.WorkshopActivity.activity.topic_keep_private') }}
+					<help-tip :title="ht('server_title')" :what="ht('server_what')" :why="ht('server_why')" :how="ht('server_how')" />
 				</div>
 				<v-row dense>
 					<v-col cols="12" sm="5">
@@ -39,6 +41,7 @@
 					<v-btn small outlined :color="topicArmed ? 'error' : undefined" @click="newTopic"
 						:title="$t('plugins.WorkshopActivity.activity.new_topic_hint')"
 					>{{ topicArmed ? $t('plugins.WorkshopActivity.activity.tap_again_to_change_topic') : $t('plugins.WorkshopActivity.activity.generate_new_topic') }}</v-btn>
+					<help-tip :title="ht('new_topic_title')" :what="ht('new_topic_what')" :why="ht('new_topic_why')" :if-missing="ht('new_topic_missing')" :how="ht('new_topic_how')" />
 				</div>
 				<div class="text-caption mt-2" v-if="notice.config.topic">
 					<a target="_blank" rel="noopener"
@@ -59,6 +62,7 @@
 				<div class="act-section-title">
 					<span class="act-badge"><v-icon small color="white">mdi-weather-night</v-icon></span>{{ $t('plugins.WorkshopActivity.activity.quiet_hours') }}
 					<v-chip v-if="notice.in_schedule" x-small outlined color="info" class="ml-2">{{ $t('plugins.WorkshopActivity.activity.quiet_now') }}</v-chip>
+					<help-tip :title="ht('quiet_title')" :what="ht('quiet_what')" :why="ht('quiet_why')" :how="ht('quiet_how')" />
 					<v-spacer />
 					<v-switch
 						:input-value="scheduleCfg.active" dense hide-details class="mt-0 pt-0"
@@ -98,6 +102,7 @@
 						:disabled="!notice.config.active"
 						@change="v => saveSchedule({ mode: v })"
 					/>
+					<help-tip :title="ht('quiet_mode_title')" :what="ht('quiet_mode_what')" :why="ht('quiet_mode_why')" />
 				</div>
 				<div class="act-actions mt-3">
 					<v-btn small outlined :disabled="!scheduleChanged || !notice.config.active" @click="saveSchedule({})">{{ $t('plugins.WorkshopActivity.activity.save_hours') }}</v-btn>
@@ -112,6 +117,7 @@
 				<div class="act-section-title">
 					<span class="act-badge"><v-icon small color="white">mdi-bell-ring-outline</v-icon></span>
 					{{ $t('plugins.WorkshopActivity.activity.which_events_to_notify_and_how') }}
+					<help-tip :title="ht('events_title')" :what="ht('events_what')" :why="ht('events_why')" :how="ht('events_how')" />
 				</div>
 				<div class="text-caption mb-3" style="color:var(--tp-faint)">
 					{{ $t(hasCamera ? 'plugins.WorkshopActivity.activity.attachment_hint' : 'plugins.WorkshopActivity.activity.attachment_hint_no_camera', { s: notice.config.video_s }) }}
@@ -128,6 +134,7 @@
 						:disabled="!notice.config.active"
 						@change="setVideo"
 					/>
+					<help-tip :title="ht('video_title')" :what="ht('video_what')" :why="ht('video_why')" />
 				</div>
 				<div class="act-events">
 				<div
@@ -184,6 +191,7 @@
 							:title="$t('plugins.WorkshopActivity.activity.respects_quiet_hours')"
 							@change="v => setOption(t.kind, 'H', v)"
 						/>
+						<help-tip :title="ht('opt_attachment_title')" :what="ht('opt_attachment_what')" :why="ht('opt_attachment_why')" :how="ht('opt_attachment_how')" />
 					</div>
 				</div>
 				</div>
@@ -203,6 +211,7 @@ import i18n from '../../i18n'
 // A failed call says so in words (ErrorNotice); nothing is retried by itself.
 
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared
+import HelpTip from './HelpTip.vue' // vue/_shared36
 import { api } from './workshop-api.js'
 import { pluginActive } from './workshop-ids.js'
 import { noticeOf } from './activity-notice.js'
@@ -242,7 +251,7 @@ const MODES_SCHEDULE = [
 const SECONDS_VIDEO = [2, 3, 4, 5, 6, 8, 10].map(n => ({ value: n, text: n + ' s' }));
 
 export default {
-	components: { ErrorNotice },
+	components: { HelpTip, ErrorNotice },
 	data() {
 		return {
 			cameras: [], // [{id, name}] of the camera relay (empty = no camera service)
@@ -306,6 +315,9 @@ export default {
 		clearTimeout(this._topicTimer);
 	},
 	methods: {
+		ht(k) {
+			return this.$t('plugins.WorkshopActivity.activity.help_' + k)
+		},
 		// the tag colour and the text on it, always readable (readable-text.js)
 		tagStyle(bg) {
 			const p = readablePair(bg)

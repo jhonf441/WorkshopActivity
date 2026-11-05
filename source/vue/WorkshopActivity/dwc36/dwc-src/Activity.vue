@@ -21,6 +21,7 @@
 		<v-card class="mb-3">
 			<v-card-title class="text-subtitle-1">
 				<v-icon class="mr-2">mdi-calendar-today</v-icon>{{ $t('plugins.WorkshopActivity.activity.summary_title') }}
+				<help-tip :title="ht('summary_title')" :what="ht('summary_what')" :why="ht('summary_why')" :how="ht('summary_how')" />
 				<v-spacer />
 				<v-btn-toggle v-model="summarySpan" mandatory dense color="primary" class="mr-2">
 					<v-btn small value="today">{{ $t('plugins.WorkshopActivity.activity.summary_today') }}</v-btn>
@@ -42,7 +43,7 @@
 							</v-card>
 						</v-col>
 					</v-row>
-					<div class="text-subtitle-2 mt-4 mb-1">{{ $t('plugins.WorkshopActivity.activity.summary_jobs') }}</div>
+					<div class="text-subtitle-2 mt-4 mb-1 d-flex align-center">{{ $t('plugins.WorkshopActivity.activity.summary_jobs') }}<help-tip :title="ht('summary_jobs_title')" :what="ht('summary_jobs_what')" :why="ht('summary_jobs_why')" /></div>
 					<div v-if="!summary.jobs.length" class="text-caption grey--text">{{ $t('plugins.WorkshopActivity.activity.summary_no_jobs') }}</div>
 					<v-simple-table v-else dense>
 						<tbody>
@@ -57,7 +58,7 @@
 							</tr>
 						</tbody>
 					</v-simple-table>
-					<div class="text-subtitle-2 mt-4 mb-1">{{ $t('plugins.WorkshopActivity.activity.summary_failures') }}</div>
+					<div class="text-subtitle-2 mt-4 mb-1 d-flex align-center">{{ $t('plugins.WorkshopActivity.activity.summary_failures') }}<help-tip :title="ht('summary_failures_title')" :what="ht('summary_failures_what')" :why="ht('summary_failures_why')" /></div>
 					<div v-if="!summary.faults.length" class="text-caption success--text"><v-icon x-small left color="success">mdi-check-circle</v-icon>{{ $t('plugins.WorkshopActivity.activity.summary_no_failures') }}</div>
 					<div v-for="f in summary.faults" :key="f.id" class="d-flex align-start py-1" style="gap:8px">
 						<span class="text-caption text-no-wrap grey--text">{{ hourRow(f.ts) }}</span>
@@ -70,14 +71,18 @@
 		</div>
 		<div v-if="section === 'history'">
 		<v-card class="mb-3">
-			<v-card-title><v-icon class="mr-2">mdi-history</v-icon>{{ $t('plugins.WorkshopActivity.activity.activity_history') }}</v-card-title>
+			<v-card-title><v-icon class="mr-2">mdi-history</v-icon>{{ $t('plugins.WorkshopActivity.activity.activity_history') }}<v-spacer /><help-tip :title="ht('history_title')" :what="ht('history_what')" :why="ht('history_why')" :how="ht('history_how')" /></v-card-title>
 			<v-card-text>
 				<v-row dense>
 					<v-col cols="12" sm="6" class="d-flex align-center">
 						<range-picker v-model="actRange" />
+						<help-tip :title="ht('range_title')" :what="ht('range_what')" :why="ht('range_why')" />
 					</v-col>
 					<v-col cols="12" sm="3">
-						<v-select v-model="actKind" :items="[{ text: $t('plugins.WorkshopActivity.activity.all_paren'), value: kindAll }, ...activityKinds]" :label="$t('plugins.WorkshopActivity.activity.type')" dense hide-details />
+						<div class="help-tip-row">
+							<v-select v-model="actKind" :items="[{ text: $t('plugins.WorkshopActivity.activity.all_paren'), value: kindAll }, ...activityKinds]" :label="$t('plugins.WorkshopActivity.activity.type')" dense hide-details />
+							<help-tip :title="ht('kind_title')" :what="ht('kind_what')" :why="ht('kind_why')" :how="ht('kind_how')" />
+						</div>
 					</v-col>
 					<v-col cols="12" sm="3" class="d-flex align-center">
 						<v-btn small color="primary" @click="searchActivity(0)" :loading="activityLoading">{{ $t('plugins.WorkshopActivity.activity.find') }}</v-btn>
@@ -85,6 +90,7 @@
 							v-model="hideService" dense hide-details class="ml-3 mt-0 pt-0"
 							:label="$t('plugins.WorkshopActivity.activity.hide_service_restarts')" @change="searchActivity(0)"
 						/>
+						<help-tip :title="ht('hide_service_title')" :what="ht('hide_service_what')" :why="ht('hide_service_why')" :how="ht('hide_service_how')" />
 					</v-col>
 				</v-row>
 
@@ -115,9 +121,13 @@
 						v-model="actText" :label="$t('plugins.WorkshopActivity.activity.search')" prepend-inner-icon="mdi-magnify" clearable dense hide-details
 						style="max-width:280px" @keyup.enter="searchActivity(0)" @click:clear="actText = ''; searchActivity(0)"
 					/>
+					<help-tip :title="ht('search_title')" :what="ht('search_what')" :why="ht('search_why')" />
 					<v-checkbox v-model="group" dense hide-details class="mt-0 pt-0" :label="$t('plugins.WorkshopActivity.activity.group_repeated')" />
+					<help-tip :title="ht('group_title')" :what="ht('group_what')" :why="ht('group_why')" :how="ht('group_how')" />
 					<v-checkbox v-if="me" v-model="onlyMine" dense hide-details class="mt-0 pt-0" :label="$t('plugins.WorkshopActivity.activity.only_mine')" :title="$t('plugins.WorkshopActivity.activity.only_mine_hint')" />
+					<help-tip v-if="me" :title="ht('mine_title')" :what="ht('mine_what')" :why="ht('mine_why')" />
 					<v-btn x-small outlined :loading="exporting" @click="exportCsv"><v-icon x-small left>mdi-download</v-icon>{{ $t('plugins.WorkshopActivity.activity.export_csv') }}</v-btn>
+					<help-tip :title="ht('export_title')" :what="ht('export_what')" :why="ht('export_why')" :how="ht('export_how')" />
 				</div>
 
 				<div v-if="historyRefusal" class="lock-reason text-body-2 mt-2"><v-icon small left>mdi-lock-outline</v-icon>{{ historyRefusal }}</div>
@@ -127,7 +137,7 @@
 						<tr>
 							<th style="width:64px">{{ $t('plugins.WorkshopActivity.activity.time') }}</th>
 							<th style="width:140px">{{ $t('plugins.WorkshopActivity.activity.type') }}</th>
-							<th>{{ $t('plugins.WorkshopActivity.activity.description') }}</th>
+							<th><span class="d-inline-flex align-center">{{ $t('plugins.WorkshopActivity.activity.description') }}<help-tip :title="ht('table_title')" :what="ht('table_what')" :why="ht('table_why')" :how="ht('table_how')" /></span></th>
 							<th class="text-right" style="width:84px">{{ $t('plugins.WorkshopActivity.activity.duration') }}</th>
 							<th class="text-right" style="width:64px">kWh</th>
 							<th style="width:70px"></th>
@@ -202,6 +212,7 @@
 					</span>
 					<v-btn x-small text :disabled="actOffset + actLimit >= activityTotal" @click="searchActivity(actOffset + actLimit)">{{ $t('plugins.WorkshopActivity.activity.next') }}</v-btn>
 					<v-spacer />
+					<help-tip v-if="canDo('activity.clear')" :title="ht('delete_filtered_title')" :what="ht('delete_filtered_what')" :why="ht('delete_filtered_why')" :if-missing="ht('delete_filtered_missing')" :how="ht('delete_filtered_how')" />
 					<v-btn
 						v-if="canDo('activity.clear')" x-small :outlined="!cleanArmed" :color="cleanArmed ? 'error' : 'grey'"
 						:title="$t('plugins.WorkshopActivity.activity.delete_filtered_hint')"
@@ -222,7 +233,7 @@
 		<activity-notices v-if="section === 'notices'" />
 		<div v-if="section === 'live'">
 		<v-card class="mb-3">
-			<v-card-title>{{ $t('plugins.WorkshopActivity.activity.log_live_jobs') }}</v-card-title>
+			<v-card-title>{{ $t('plugins.WorkshopActivity.activity.log_live_jobs') }}<v-spacer /><help-tip :title="ht('live_title')" :what="ht('live_what')" :why="ht('live_why')" :how="ht('live_how')" /></v-card-title>
 			<v-card-text>
 				<div class="text-body-2">
 					{{ $t('plugins.WorkshopActivity.activity.a_live_job_streamed_line_by') }} <b>GCode</b>{{ $t('plugins.WorkshopActivity.activity.each_job_goes_into_the_history') }}
@@ -271,11 +282,12 @@ import { noticeOf } from './activity-notice.js'
 import { styles, STYLE_OTHER, cancelled } from './event-styles.js'
 import { sectionColor } from './section-colors.js' // the color of each section (--wf-sec)
 import RangePicker from './RangePicker.vue' // vue/_shared36
+import HelpTip from './HelpTip.vue' // vue/_shared36
 import { relative, resolve, asTexts, same } from './range-picker.js' // vue/_shared36
 
 export default {
 	mixins: [roleMixin],
-	components: { RangePicker, SideTabs, PageHeader, HiddenNote, ServiceNotice: ServiceNotice, StartupPanel: StartupPanel, ErrorNotice, ActivityNotices },
+	components: { HelpTip, RangePicker, SideTabs, PageHeader, HiddenNote, ServiceNotice: ServiceNotice, StartupPanel: StartupPanel, ErrorNotice, ActivityNotices },
 	data() {
 		return {
 			defaultRange: relative(7, 'days'), // the range the page opens with (the last 7 days): a different one counts as a filter
@@ -463,6 +475,9 @@ export default {
 		clearTimeout(this._armTimer);
 	},
 	methods: {
+		ht(k) {
+			return this.$t('plugins.WorkshopActivity.activity.help_' + k)
+		},
 		// the person signed in / out or the role changed: the summary and the history are read again
 		onSessionChange() {
 			this.loadSummary();
