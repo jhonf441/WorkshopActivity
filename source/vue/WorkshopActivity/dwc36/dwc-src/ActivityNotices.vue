@@ -14,11 +14,11 @@
 			{{ $t('plugins.WorkshopActivity.activity.waiting_for_backend') }}
 		</v-card-text>
 		<v-card-text v-else>
-			<div class="text-body-2 mb-4" style="color:var(--tp-faint)">
-				{{ $t('plugins.WorkshopActivity.activity.every_event_in_this_list_is') }}
+			<div class="wf-note is-info mb-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t('plugins.WorkshopActivity.activity.every_event_in_this_list_is') }}
 				<a href="https://ntfy.sh" target="_blank" rel="noopener">ntfy</a>
-				{{ $t('plugins.WorkshopActivity.activity.android_ios_install_and_subscribe') }}
-			</div>
+				{{ $t('plugins.WorkshopActivity.activity.android_ios_install_and_subscribe') }}</span></div>
+			<!-- one reason for every control that waits for the alerts to be on / for a topic (N3), not one under each -->
+			<div v-if="!notice.config.active || !notice.config.topic" class="wf-note is-warn mb-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ $t(notice.config.active ? 'plugins.WorkshopActivity.activity.topic_missing_reason' : 'plugins.WorkshopActivity.activity.alerts_off_reason') }}</span></div>
 
 			<!-- Destination -->
 			<section class="act-section" style="--act-sec:#1E88E5">
@@ -107,9 +107,7 @@
 				<div class="act-actions mt-3">
 					<v-btn small outlined :disabled="!scheduleChanged || !notice.config.active" @click="saveSchedule({})">{{ $t('plugins.WorkshopActivity.activity.save_hours') }}</v-btn>
 				</div>
-				<div class="text-caption mt-2" style="color:var(--tp-faint)">
-					{{ $t('plugins.WorkshopActivity.activity.events_are_still_saved_in_the') }}
-				</div>
+				<div class="wf-note is-info mt-2" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t('plugins.WorkshopActivity.activity.events_are_still_saved_in_the') }}</span></div>
 			</section>
 
 			<!-- Events -->
@@ -119,9 +117,7 @@
 					{{ $t('plugins.WorkshopActivity.activity.which_events_to_notify_and_how') }}
 					<help-tip :title="ht('events_title')" :what="ht('events_what')" :why="ht('events_why')" :how="ht('events_how')" />
 				</div>
-				<div class="text-caption mb-3" style="color:var(--tp-faint)">
-					{{ $t(hasCamera ? 'plugins.WorkshopActivity.activity.attachment_hint' : 'plugins.WorkshopActivity.activity.attachment_hint_no_camera', { s: notice.config.video_s }) }}
-				</div>
+				<div class="wf-note is-info mb-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t(hasCamera ? 'plugins.WorkshopActivity.activity.attachment_hint' : 'plugins.WorkshopActivity.activity.attachment_hint_no_camera', { s: notice.config.video_s }) }}</span></div>
 				<div class="act-grid mb-3">
 					<v-select
 						v-if="cameras.length"
@@ -211,6 +207,7 @@ import i18n from '../../i18n'
 // A failed call says so in words (ErrorNotice); nothing is retried by itself.
 
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared
+import { roleMixin } from './role-mixin.js' // vue/_shared36
 import HelpTip from './HelpTip.vue' // vue/_shared36
 import { api } from './workshop-api.js'
 import { pluginActive } from './workshop-ids.js'
@@ -251,6 +248,9 @@ const MODES_SCHEDULE = [
 const SECONDS_VIDEO = [2, 3, 4, 5, 6, 8, 10].map(n => ({ value: n, text: n + ' s' }));
 
 export default {
+	mixins: [roleMixin],
+	// nothing of the destination, the last failure or the test results survives a change of person (ESTANDAR 3)
+	sessionData: ['cameras', 'destServer', 'destTopic', 'hourSince', 'hourUntil', 'noticeError', 'resultKind', 'testing', 'testingKind', 'topicArmed'],
 	components: { HelpTip, ErrorNotice },
 	data() {
 		return {
@@ -315,6 +315,19 @@ export default {
 		clearTimeout(this._topicTimer);
 	},
 	methods: {
+		// the fields are the published state of the service (the watcher of `notice` fills them only when it changes): fill them again for the new person
+		onSessionChange() {
+			const n = this.notice;
+			if (n) {
+				this.destServer = n.config.server;
+				this.destTopic = n.config.topic;
+				if (n.config.schedule) {
+					this.hourSince = n.config.schedule.since;
+					this.hourUntil = n.config.schedule.until;
+				}
+			}
+			this.readCameras();
+		},
 		ht(k) {
 			return this.$t('plugins.WorkshopActivity.activity.help_' + k)
 		},

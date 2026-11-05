@@ -4,9 +4,9 @@
 		<!-- header: always visible, whatever section of the side bar is open -->
 		<page-header :lead="$t('plugins.WorkshopActivity.activity.lead')" icon="mdi-history" :title="$t('plugins.WorkshopActivity.activity.header_title')" :reasons="headerReasons">
 			<v-chip small outlined>{{ $t('plugins.WorkshopActivity.activity.events_n', { n: activityTotal }) }}</v-chip>
-			<v-chip small outlined :color="notice && notice.config.active ? 'success' : 'grey'">
-				<v-icon x-small left>{{ notice && notice.config.active ? 'mdi-bell-ring-outline' : 'mdi-bell-off-outline' }}</v-icon>
-				{{ notice && notice.config.active ? $t('plugins.WorkshopActivity.activity.alerts_on') : $t('plugins.WorkshopActivity.activity.alerts_off') }}
+			<v-chip v-if="notice" small outlined :color="notice.config.active ? 'success' : 'grey'">
+				<v-icon x-small left>{{ notice.config.active ? 'mdi-bell-ring-outline' : 'mdi-bell-off-outline' }}</v-icon>
+				{{ notice.config.active ? $t('plugins.WorkshopActivity.activity.alerts_on') : $t('plugins.WorkshopActivity.activity.alerts_off') }}
 			</v-chip>
 			<template v-slot:right>
 				<span v-if="lastEvent" class="text-caption grey--text">{{ $t('plugins.WorkshopActivity.activity.last_event_at', { time: lastEvent }) }}</span>
@@ -31,7 +31,7 @@
 				<v-btn small outlined :loading="summaryLoading" @click="loadSummary"><v-icon small left>mdi-refresh</v-icon>{{ $t('plugins.WorkshopActivity.activity.refresh_summary') }}</v-btn>
 			</v-card-title>
 			<v-card-text>
-				<div v-if="summaryRefusal" class="lock-reason text-body-2"><v-icon small left>mdi-lock-outline</v-icon>{{ summaryRefusal }}</div>
+				<session-notice v-if="summaryRefusal" :kind="summaryRefusal" needed="viewer" />
 				<error-notice v-else-if="summaryError" :error="summaryError" retry @retry="loadSummary" />
 				<div v-else-if="!summary" class="grey--text">{{ $t('plugins.WorkshopActivity.activity.summary_loading') }}</div>
 				<template v-else>
@@ -130,7 +130,7 @@
 					<help-tip :title="ht('export_title')" :what="ht('export_what')" :why="ht('export_why')" :how="ht('export_how')" />
 				</div>
 
-				<div v-if="historyRefusal" class="lock-reason text-body-2 mt-2"><v-icon small left>mdi-lock-outline</v-icon>{{ historyRefusal }}</div>
+				<session-notice v-if="historyRefusal" :kind="historyRefusal" needed="viewer" class="mt-2" />
 				<error-notice v-else-if="historyError" :error="historyError" retry class="mt-2" @retry="searchActivity(actOffset)" />
 				<v-simple-table v-if="rowsVisible.length > 0" dense class="mt-2 act-table">
 					<thead>
@@ -219,9 +219,10 @@
 						@click="cleanFiltered"
 					>{{ cleanArmed ? $t('plugins.WorkshopActivity.activity.tap_again_to_delete_n_events', { n: activityTotal }) : $t('plugins.WorkshopActivity.activity.delete_filtered_n', { n: activityTotal }) }}</v-btn>
 				</div>
-				<div v-if="deleteMsg" class="text-caption mt-1" :class="deleteErr ? 'error--text' : 'success--text'">{{ deleteMsg }}</div>
+				<lock-reason v-if="deleteRefusal" :kind="deleteRefusal" need="technician" />
+				<div v-else-if="deleteMsg" class="text-caption mt-1" :class="deleteErr ? 'error--text' : 'success--text'">{{ deleteMsg }}</div>
 				<!-- deleting is a technician's: the buttons are not drawn for the others, so the reason is written here -->
-				<div v-if="rowsVisible.length > 0 && !canDo('activity.delete')" class="text-caption grey--text mt-1 lock-reason"><v-icon x-small left>mdi-lock-outline</v-icon>{{ lockTextOp('activity.delete', 'technician') }}</div>
+				<lock-reason v-if="rowsVisible.length > 0" op="activity.delete" need="technician" />
 
 				<div class="text-caption grey--text mt-2">
 					{{ $t('plugins.WorkshopActivity.activity.filters_by_date_and_type_directly') }}
@@ -270,11 +271,12 @@ import ErrorNotice from './ErrorNotice.vue' // vue/_shared
 import ActivityNotices from './ActivityNotices.vue'
 import { roleMixin } from './role-mixin.js' // what the role sees and may do (vue/_shared)
 import { visibleItems } from './role-view.js'
-import { currentIdentity } from './workshop-auth.js'
+import { currentIdentity, signedOut } from './workshop-auth.js'
 import { errorText } from './friendly-error.js'
 import HiddenNote from './HiddenNote.vue' // the quiet line for the sections the role does not see (vue/_shared)
-import { isRefusal } from './session-note.js'
-import { refusalNow } from './session-now.js' // a refusal told by its cause
+import { refusalKind } from './refusal-kind.js' // the cause of a refusal: session | role
+import SessionNotice from './SessionNotice.vue' // vue/_shared36
+import LockReason from './LockReason.vue' // vue/_shared36
 import { ts } from './shared-t.js'
 import { exchangeExportCsv } from './data-exchange-ui.js'
 import { ACTIVITY_CSV_COLUMNS, activityCsvRows, activityCsvBase } from './activity-csv.js'
@@ -287,11 +289,13 @@ import { relative, resolve, asTexts, same } from './range-picker.js' // vue/_sha
 
 export default {
 	mixins: [roleMixin],
-	components: { HelpTip, RangePicker, SideTabs, PageHeader, HiddenNote, ServiceNotice: ServiceNotice, StartupPanel: StartupPanel, ErrorNotice, ActivityNotices },
+	// what the person who left had read must not stay (ESTANDAR 3): the summary, the history and the messages of the actions
+	sessionData: ['summary', 'summaryError', 'activityRows', 'activityTotal', 'activityKinds', 'historyOk', 'historyError', 'deleteMsg', 'deleteErr', 'deleteRefusal', 'open', 'armedId', 'cleanArmed'],
+	components: { HelpTip, RangePicker, SideTabs, PageHeader, HiddenNote, ServiceNotice: ServiceNotice, StartupPanel: StartupPanel, ErrorNotice, ActivityNotices, SessionNotice, LockReason },
 	data() {
 		return {
 			defaultRange: relative(7, 'days'), // the range the page opens with (the last 7 days): a different one counts as a filter
-			armedId: null, cleanArmed: false, deleteMsg: '', deleteErr: false,
+			armedId: null, cleanArmed: false, deleteMsg: '', deleteErr: false, deleteRefusal: '',
 			actRange: relative(7, 'days'),
 			kindAll: KIND_ALL,
 			actKind: KIND_ALL,
@@ -353,11 +357,11 @@ export default {
 		// a refused summary / history is told by its cause (no session / role), never left as a blank card
 		summaryRefusal() {
 			void this.identityTick;
-			return refusalNow(this.summaryError, 'viewer');
+			return refusalKind(this.summaryError, signedOut());
 		},
 		historyRefusal() {
 			void this.identityTick;
-			return refusalNow(this.historyError, 'viewer');
+			return refusalKind(this.historyError, signedOut());
 		},
 		// the tiles of the summary
 		cardsSummary() {
@@ -434,8 +438,9 @@ export default {
 			return out;
 		},
 		// Published by the backend (notifier.py) as WorkshopService plugin data.
+		// the alerts of the phone (server, topic) are a technician's: nothing of them shows to anyone else
 		notice() {
-			return noticeOf(this.$store);
+			return this.atLeast('technician') ? noticeOf(this.$store) : null;
 		},
 		// start-up card: the history answers, and the phone alerts (optional) have a server and a topic
 		rowsStartup() {
@@ -448,7 +453,8 @@ export default {
 		},
 		labels() {
 			const out = {};
-			(this.notice ? this.notice.catalog : []).forEach(t => { out[t.kind] = t.label; }); // already in the language of this DWC
+			const all = noticeOf(this.$store); // the names of the event types are not a secret: they come whoever is signed in
+			(all ? all.catalog : []).forEach(t => { out[t.kind] = t.label; }); // already in the language of this DWC
 			return out;
 		}
 	},
@@ -480,8 +486,10 @@ export default {
 		},
 		// the person signed in / out or the role changed: the summary and the history are read again
 		onSessionChange() {
+			const narrowed = this.onlyMine; // the filter "only mine" is of the person who left: clearing it searches again by itself (watcher)
+			this.onlyMine = false;
 			this.loadSummary();
-			this.searchActivity(this.actOffset);
+			if (!narrowed) this.searchActivity(this.actOffset);
 		},
 		// the two moments of the range now, as the texts the service takes
 		rangeTexts() {
@@ -557,13 +565,15 @@ export default {
 		async executeDeleted(op, args) {
 			this.deleteMsg = '';
 			this.deleteErr = false;
+			this.deleteRefusal = '';
 			try {
 				const data = await api(op, args);
 				if (data.error) throw new Error(data.error);
 				this.deleteMsg = i18n.t('plugins.WorkshopActivity.activity.deleted_n_events', { n: data.deleted });
 			} catch (e) {
-				this.deleteErr = true;
-				this.deleteMsg = isRefusal(e) ? refusalNow(e, 'admin') : i18n.t('plugins.WorkshopActivity.activity.could_not_delete', { error: errorText(e, ts) });
+				this.deleteRefusal = refusalKind(e, signedOut());
+				this.deleteErr = !this.deleteRefusal;
+				this.deleteMsg = this.deleteRefusal ? '' : i18n.t('plugins.WorkshopActivity.activity.could_not_delete', { error: errorText(e, ts) });
 			}
 			const off = this.actOffset >= this.activityTotal - 1 ? Math.max(0, this.actOffset - this.actLimit) : this.actOffset;
 			this.searchActivity(off);

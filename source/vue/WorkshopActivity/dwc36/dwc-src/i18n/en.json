@@ -248,7 +248,9 @@
 		"help_opt_attachment_title": "Attachment, priority and hours",
 		"help_opt_attachment_what": "Per event type: Attachment adds a photo or a short video from the camera; Priority sets how insistent the phone is (minimum has no sound, urgent is the loudest); Hours makes this type obey the quiet hours.",
 		"help_opt_attachment_why": "So an emergency stop can be loud with a photo while a minor warning stays silent.",
-		"help_opt_attachment_how": "The Hours box is only available when the quiet hours are on. The emergency stop and fire ignore the quiet hours unless it is ticked."
+		"help_opt_attachment_how": "The Hours box is only available when the quiet hours are on. The emergency stop and fire ignore the quiet hours unless it is ticked.",
+		"alerts_off_reason": "Alerts are off: turn them on above to change this.",
+		"topic_missing_reason": "There is no topic: write one and save the destination to be able to test."
 	},
 	"index": {
 		"activity": "Activity"
@@ -292,7 +294,6 @@
 		"service_not_running": "is not running (Settings > Plugins)",
 		"service_sign_in": "needs you to sign in to be checked",
 		"service_role": "your role cannot check it: a technician is needed",
-		"locked": "Not signed in: sign in to create or change files from here.",
 		"row_history": "History (database)",
 		"row_history_tip": "The service keeps the events of the machine here (jobs, modes, failures). It creates itself the first time.",
 		"history_ok": "answering ({n} events)",

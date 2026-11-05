@@ -1,5 +1,9 @@
 # WorkshopActivity -- historial de versiones
 
+## 2.7.21 -- 2026-11-05
+
+- Session notices and help standard: one voice for sign-in and role refusals, shared help tips, identity change resets what the session showed
+
 ## 2.7.20 -- 2026-11-04
 
 - Help of fields and cards is the shared help-tip; sign out no longer reopens the PIN dialog

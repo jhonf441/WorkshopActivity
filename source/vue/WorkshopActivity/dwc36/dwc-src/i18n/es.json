@@ -248,7 +248,9 @@
 		"help_opt_attachment_title": "Adjunto, prioridad y horas",
 		"help_opt_attachment_what": "Por tipo de evento: Adjunto añade una foto o un video corto de la cámara; Prioridad define qué tan insistente es el teléfono (mínima sin sonido, urgente la más fuerte); Horas hace que este tipo respete las horas de silencio.",
 		"help_opt_attachment_why": "Para que un paro de emergencia suene fuerte y con foto mientras un aviso menor queda en silencio.",
-		"help_opt_attachment_how": "La casilla Horas solo está disponible con las horas de silencio activas. El paro de emergencia y el fuego las ignoran salvo que la marques."
+		"help_opt_attachment_how": "La casilla Horas solo está disponible con las horas de silencio activas. El paro de emergencia y el fuego las ignoran salvo que la marques.",
+		"alerts_off_reason": "Las alertas están apagadas: enciéndelas arriba para cambiar esto.",
+		"topic_missing_reason": "Falta el tema: escribe uno y guarda el destino para poder probar."
 	},
 	"index": {
 		"activity": "Actividad"
@@ -292,7 +294,6 @@
 		"service_not_running": "no está en marcha (Ajustes > Complementos)",
 		"service_sign_in": "hace falta iniciar sesión para comprobarlo",
 		"service_role": "tu rol no puede comprobarlo: hace falta técnico",
-		"locked": "Sin sesión: inicia sesión para crear o cambiar archivos desde aquí.",
 		"row_history": "Historial (base de datos)",
 		"row_history_tip": "El servicio guarda aquí los eventos de la máquina (trabajos, modos, fallas). Se crea sola la primera vez.",
 		"history_ok": "responde ({n} eventos)",
