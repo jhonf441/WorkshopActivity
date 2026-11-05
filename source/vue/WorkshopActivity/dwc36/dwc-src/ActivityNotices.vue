@@ -140,11 +140,11 @@
 						<span class="act-notice-name">
 							<span class="act-ev-label">{{ labelOf(t) }}</span>
 							<span v-if="notice.config.kinds[t.kind] && option(t.kind)" class="act-tags">
-								<span class="act-tag" :style="{ '--tag': PRIORITY_COLORS[option(t.kind).priority] || '#78909C' }">
+								<span class="act-tag" :style="tagStyle(PRIORITY_COLORS[option(t.kind).priority] || '#78909C')">
 									{{ priorityText(option(t.kind).priority) }}
 								</span>
-								<span v-if="option(t.kind).attachment !== 'none'" class="act-tag" style="--tag:#00897B">
-									<v-icon x-small color="white" class="mr-1">{{ option(t.kind).attachment === 'video' ? 'mdi-video-outline' : 'mdi-camera-outline' }}</v-icon>{{ attachmentText(option(t.kind).attachment) }}
+								<span v-if="option(t.kind).attachment !== 'none'" class="act-tag" :style="tagStyle('#00897B')">
+									<v-icon x-small class="mr-1">{{ option(t.kind).attachment === 'video' ? 'mdi-video-outline' : 'mdi-camera-outline' }}</v-icon>{{ attachmentText(option(t.kind).attachment) }}
 								</span>
 							</span>
 						</span>
@@ -193,6 +193,7 @@
 </template>
 
 <script>
+import { readablePair } from './readable-text.js'
 import i18n from '../../i18n'
 'use strict'
 
@@ -305,6 +306,11 @@ export default {
 		clearTimeout(this._topicTimer);
 	},
 	methods: {
+		// the tag colour and the text on it, always readable (readable-text.js)
+		tagStyle(bg) {
+			const p = readablePair(bg)
+			return { '--tag': p.background, color: p.color }
+		},
 		styleOf(kind) {
 			return styles[kind] || EXTRA_STYLES[kind] || STYLE_OTHER;
 		},
@@ -517,6 +523,9 @@ export default {
 	font-weight: 600;
 	color: #fff;
 	background: var(--tag, #78909C);
+}
+.act-tag .v-icon {
+	color: inherit !important; /* the icon takes the text colour chosen for the tag (readable-text.js), not the theme's white */
 }
 .act-notice-options {
 	margin-top: 16px;

@@ -13,6 +13,7 @@
 			</template>
 			<template v-slot:startup><startup-panel plugin="WorkshopActivity" :defs="rowsStartup" /></template>
 		</page-header>
+		<hidden-note :sections="allSections" class="mb-2" />
 		<div class="st-layout">
 		<side-tabs v-model="section" :items="sections" />
 		<div class="st-body">
@@ -29,7 +30,8 @@
 				<v-btn small outlined :loading="summaryLoading" @click="loadSummary"><v-icon small left>mdi-refresh</v-icon>{{ $t('plugins.WorkshopActivity.activity.refresh_summary') }}</v-btn>
 			</v-card-title>
 			<v-card-text>
-				<error-notice v-if="summaryError" :error="summaryError" retry @retry="loadSummary" />
+				<div v-if="summaryRefusal" class="lock-reason text-body-2"><v-icon small left>mdi-lock-outline</v-icon>{{ summaryRefusal }}</div>
+				<error-notice v-else-if="summaryError" :error="summaryError" retry @retry="loadSummary" />
 				<div v-else-if="!summary" class="grey--text">{{ $t('plugins.WorkshopActivity.activity.summary_loading') }}</div>
 				<template v-else>
 					<v-row dense>
@@ -118,7 +120,8 @@
 					<v-btn x-small outlined :loading="exporting" @click="exportCsv"><v-icon x-small left>mdi-download</v-icon>{{ $t('plugins.WorkshopActivity.activity.export_csv') }}</v-btn>
 				</div>
 
-				<error-notice v-if="historyError" :error="historyError" retry class="mt-2" @retry="searchActivity(actOffset)" />
+				<div v-if="historyRefusal" class="lock-reason text-body-2 mt-2"><v-icon small left>mdi-lock-outline</v-icon>{{ historyRefusal }}</div>
+				<error-notice v-else-if="historyError" :error="historyError" retry class="mt-2" @retry="searchActivity(actOffset)" />
 				<v-simple-table v-if="rowsVisible.length > 0" dense class="mt-2 act-table">
 					<thead>
 						<tr>
@@ -206,6 +209,8 @@
 					>{{ cleanArmed ? $t('plugins.WorkshopActivity.activity.tap_again_to_delete_n_events', { n: activityTotal }) : $t('plugins.WorkshopActivity.activity.delete_filtered_n', { n: activityTotal }) }}</v-btn>
 				</div>
 				<div v-if="deleteMsg" class="text-caption mt-1" :class="deleteErr ? 'error--text' : 'success--text'">{{ deleteMsg }}</div>
+				<!-- deleting is a technician's: the buttons are not drawn for the others, so the reason is written here -->
+				<div v-if="rowsVisible.length > 0 && !canDo('activity.delete')" class="text-caption grey--text mt-1 lock-reason"><v-icon x-small left>mdi-lock-outline</v-icon>{{ lockTextOp('activity.delete', 'technician') }}</div>
 
 				<div class="text-caption grey--text mt-2">
 					{{ $t('plugins.WorkshopActivity.activity.filters_by_date_and_type_directly') }}
@@ -256,6 +261,9 @@ import { roleMixin } from './role-mixin.js' // what the role sees and may do (vu
 import { visibleItems } from './role-view.js'
 import { currentIdentity } from './workshop-auth.js'
 import { errorText } from './friendly-error.js'
+import HiddenNote from './HiddenNote.vue' // the quiet line for the sections the role does not see (vue/_shared)
+import { isRefusal } from './session-note.js'
+import { refusalNow } from './session-now.js' // a refusal told by its cause
 import { ts } from './shared-t.js'
 import { exchangeExportCsv } from './data-exchange-ui.js'
 import { ACTIVITY_CSV_COLUMNS, activityCsvRows, activityCsvBase } from './activity-csv.js'
@@ -267,7 +275,7 @@ import { relative, resolve, asTexts, same } from './range-picker.js' // vue/_sha
 
 export default {
 	mixins: [roleMixin],
-	components: { RangePicker, SideTabs, PageHeader, ServiceNotice: ServiceNotice, StartupPanel: StartupPanel, ErrorNotice, ActivityNotices },
+	components: { RangePicker, SideTabs, PageHeader, HiddenNote, ServiceNotice: ServiceNotice, StartupPanel: StartupPanel, ErrorNotice, ActivityNotices },
 	data() {
 		return {
 			defaultRange: relative(7, 'days'), // the range the page opens with (the last 7 days): a different one counts as a filter
@@ -316,15 +324,28 @@ export default {
 		secColor() {
 			return sectionColor(this.section)
 		},
-		sections() {
+		// every section with its role (the note about the hidden ones needs them all)
+		allSections() {
 			const t = k => i18n.t('plugins.WorkshopActivity.activity.' + k);
 			// F3-V (2026-10-21): everybody reads the summary and the history; the phone alerts and the live-job instructions are a technician's
-			return visibleItems([
+			return [
 				{ id: 'today', icon: 'mdi-calendar-today', label: t('nav_today') },
 				{ id: 'history', icon: 'mdi-history', label: t('nav_history') },
 				{ id: 'notices', icon: 'mdi-bell-outline', label: t('nav_alerts'), min: 'technician' },
 				{ id: 'live', icon: 'mdi-play-circle-outline', label: t('nav_live'), min: 'technician' }
-			], op => this.canDo(op));
+			];
+		},
+		sections() {
+			return visibleItems(this.allSections, op => this.canDo(op));
+		},
+		// a refused summary / history is told by its cause (no session / role), never left as a blank card
+		summaryRefusal() {
+			void this.identityTick;
+			return refusalNow(this.summaryError, 'viewer');
+		},
+		historyRefusal() {
+			void this.identityTick;
+			return refusalNow(this.historyError, 'viewer');
 		},
 		// the tiles of the summary
 		cardsSummary() {
@@ -442,6 +463,11 @@ export default {
 		clearTimeout(this._armTimer);
 	},
 	methods: {
+		// the person signed in / out or the role changed: the summary and the history are read again
+		onSessionChange() {
+			this.loadSummary();
+			this.searchActivity(this.actOffset);
+		},
 		// the two moments of the range now, as the texts the service takes
 		rangeTexts() {
 			return asTexts(resolve(this.actRange, new Date()));
@@ -522,7 +548,7 @@ export default {
 				this.deleteMsg = i18n.t('plugins.WorkshopActivity.activity.deleted_n_events', { n: data.deleted });
 			} catch (e) {
 				this.deleteErr = true;
-				this.deleteMsg = i18n.t('plugins.WorkshopActivity.activity.could_not_delete', { error: errorText(e, ts) });
+				this.deleteMsg = isRefusal(e) ? refusalNow(e, 'admin') : i18n.t('plugins.WorkshopActivity.activity.could_not_delete', { error: errorText(e, ts) });
 			}
 			const off = this.actOffset >= this.activityTotal - 1 ? Math.max(0, this.actOffset - this.actLimit) : this.actOffset;
 			this.searchActivity(off);
