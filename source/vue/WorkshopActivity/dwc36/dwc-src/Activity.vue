@@ -274,7 +274,7 @@ import { visibleItems } from './role-view.js'
 import { currentIdentity, signedOut } from './workshop-auth.js'
 import { errorText } from './friendly-error.js'
 import HiddenNote from './HiddenNote.vue' // the quiet line for the sections the role does not see (vue/_shared)
-import { refusalKind } from './refusal-kind.js' // the cause of a refusal: session | role
+import { refusalKind } from './session-refusal.js' // the cause of a refusal: session | role
 import SessionNotice from './SessionNotice.vue' // vue/_shared36
 import LockReason from './LockReason.vue' // vue/_shared36
 import { ts } from './shared-t.js'
@@ -291,6 +291,7 @@ export default {
 	mixins: [roleMixin],
 	// what the person who left had read must not stay (ESTANDAR 3): the summary, the history and the messages of the actions
 	sessionData: ['summary', 'summaryError', 'activityRows', 'activityTotal', 'activityKinds', 'historyOk', 'historyError', 'deleteMsg', 'deleteErr', 'deleteRefusal', 'open', 'armedId', 'cleanArmed'],
+	sessionErrors: ['summaryError', 'historyError', 'deleteMsg', 'deleteErr', 'deleteRefusal'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
 	components: { HelpTip, RangePicker, SideTabs, PageHeader, HiddenNote, ServiceNotice: ServiceNotice, StartupPanel: StartupPanel, ErrorNotice, ActivityNotices, SessionNotice, LockReason },
 	data() {
 		return {

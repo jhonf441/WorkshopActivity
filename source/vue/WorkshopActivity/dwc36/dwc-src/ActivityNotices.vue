@@ -251,6 +251,7 @@ export default {
 	mixins: [roleMixin],
 	// nothing of the destination, the last failure or the test results survives a change of person (ESTANDAR 3)
 	sessionData: ['cameras', 'destServer', 'destTopic', 'hourSince', 'hourUntil', 'noticeError', 'resultKind', 'testing', 'testingKind', 'topicArmed'],
+	sessionErrors: ['noticeError', 'resultKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
 	components: { HelpTip, ErrorNotice },
 	data() {
 		return {
