@@ -13,11 +13,11 @@
 			</template>
 			<template v-slot:startup><startup-panel plugin="WorkshopActivity" :defs="rowsStartup" /></template>
 		</page-header>
-		<hidden-note :sections="allSections" class="mb-2" />
 		<div class="st-layout">
 		<side-tabs v-model="section" :items="sections" />
 		<div class="st-body">
-		<div v-if="section === 'today'">
+		<locked-cover v-if="lockedSection" :needed="lockedSection" />
+		<div v-if="!lockedSection && section === 'today'">
 		<v-card class="mb-3">
 			<v-card-title class="text-subtitle-1">
 				<v-icon class="mr-2">mdi-calendar-today</v-icon>{{ $t('plugins.WorkshopActivity.activity.summary_title') }}
@@ -69,7 +69,7 @@
 			</v-card-text>
 		</v-card>
 		</div>
-		<div v-if="section === 'history'">
+		<div v-if="!lockedSection && section === 'history'">
 		<v-card class="mb-3">
 			<v-card-title><v-icon class="mr-2">mdi-history</v-icon>{{ $t('plugins.WorkshopActivity.activity.activity_history') }}<v-spacer /><help-tip :title="ht('history_title')" :what="ht('history_what')" :why="ht('history_why')" :how="ht('history_how')" /></v-card-title>
 			<v-card-text>
@@ -231,8 +231,8 @@
 		</v-card>
 
 		</div>
-		<activity-notices v-if="section === 'notices'" />
-		<div v-if="section === 'live'">
+		<activity-notices v-if="!lockedSection && section === 'notices'" />
+		<div v-if="!lockedSection && section === 'live'">
 		<v-card class="mb-3">
 			<v-card-title>{{ $t('plugins.WorkshopActivity.activity.log_live_jobs') }}<v-spacer /><help-tip :title="ht('live_title')" :what="ht('live_what')" :why="ht('live_why')" :how="ht('live_how')" /></v-card-title>
 			<v-card-text>
@@ -270,10 +270,10 @@ import { api } from './workshop-api.js'
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared
 import ActivityNotices from './ActivityNotices.vue'
 import { roleMixin } from './role-mixin.js' // what the role sees and may do (vue/_shared)
-import { visibleItems } from './role-view.js'
+import { lockedItems, lockedNeed } from './role-view.js'
 import { currentIdentity, signedOut } from './workshop-auth.js'
 import { errorText } from './friendly-error.js'
-import HiddenNote from './HiddenNote.vue' // the quiet line for the sections the role does not see (vue/_shared)
+import LockedCover from './LockedCover.vue' // the cover of a section the role cannot open (vue/_shared36)
 import { refusalKind } from './session-refusal.js' // the cause of a refusal: session | role
 import SessionNotice from './SessionNotice.vue' // vue/_shared36
 import LockReason from './LockReason.vue' // vue/_shared36
@@ -292,7 +292,7 @@ export default {
 	// what the person who left had read must not stay (ESTANDAR 3): the summary, the history and the messages of the actions
 	sessionData: ['summary', 'summaryError', 'activityRows', 'activityTotal', 'activityKinds', 'historyOk', 'historyError', 'deleteMsg', 'deleteErr', 'deleteRefusal', 'open', 'armedId', 'cleanArmed'],
 	sessionErrors: ['summaryError', 'historyError', 'deleteMsg', 'deleteErr', 'deleteRefusal'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { HelpTip, RangePicker, SideTabs, PageHeader, HiddenNote, ServiceNotice: ServiceNotice, StartupPanel: StartupPanel, ErrorNotice, ActivityNotices, SessionNotice, LockReason },
+	components: { HelpTip, RangePicker, SideTabs, PageHeader, LockedCover, ServiceNotice: ServiceNotice, StartupPanel: StartupPanel, ErrorNotice, ActivityNotices, SessionNotice, LockReason },
 	data() {
 		return {
 			defaultRange: relative(7, 'days'), // the range the page opens with (the last 7 days): a different one counts as a filter
@@ -353,7 +353,12 @@ export default {
 			];
 		},
 		sections() {
-			return visibleItems(this.allSections, op => this.canDo(op));
+			// the sections above the role stay in the list, locked (they open a cover that says why)
+			return lockedItems(this.allSections, op => this.canDo(op));
+		},
+		// the role that opens the open section, or '' when this role may
+		lockedSection() {
+			return lockedNeed(this.allSections, this.section, op => this.canDo(op));
 		},
 		// a refused summary / history is told by its cause (no session / role), never left as a blank card
 		summaryRefusal() {

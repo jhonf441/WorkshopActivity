@@ -5,11 +5,27 @@
 			<help-tip :title="ht('notices_title')" :what="ht('notices_what')" :why="ht('notices_why')" :how="ht('notices_how')" />
 			<v-spacer />
 			<v-switch
-				v-if="notice" :input-value="notice.config.active" dense hide-details class="mt-0"
+				v-if="notice" :key="'alerts-switch-' + switchKey" :input-value="notice.config.active" dense hide-details class="mt-0"
 				:label="notice.config.active ? $t('plugins.WorkshopActivity.activity.on_plural') : $t('plugins.WorkshopActivity.activity.off_plural')"
 				@change="setActive"
 			/>
 		</v-card-title>
+		<!-- Turning the alerts on sends data to a third-party server: the owner confirms it once, here (the service refuses without it too) -->
+		<v-dialog v-model="outboundOpen" max-width="520" @input="v => { if (!v) cancelOutbound(); }">
+			<v-card>
+				<v-card-title>{{ $t('plugins.WorkshopActivity.activity.outbound_title') }}</v-card-title>
+				<v-card-text>
+					<p>{{ $t('plugins.WorkshopActivity.activity.outbound_what', { server: (notice && notice.config && notice.config.server) || 'https://ntfy.sh' }) }}</p>
+					<p>{{ $t('plugins.WorkshopActivity.activity.outbound_photos') }}</p>
+					<p class="mb-0">{{ $t('plugins.WorkshopActivity.activity.outbound_topic') }}</p>
+				</v-card-text>
+				<v-card-actions>
+					<v-spacer />
+					<v-btn text @click="cancelOutbound">{{ $t('plugins.WorkshopActivity.activity.outbound_cancel') }}</v-btn>
+					<v-btn color="primary" @click="confirmOutbound">{{ $t('plugins.WorkshopActivity.activity.outbound_enable') }}</v-btn>
+				</v-card-actions>
+			</v-card>
+		</v-dialog>
 		<v-card-text v-if="!notice" class="grey--text">
 			{{ $t('plugins.WorkshopActivity.activity.waiting_for_backend') }}
 		</v-card-text>
@@ -260,6 +276,8 @@ export default {
 			destTopic: '',
 			testing: false,
 			topicArmed: false,
+			outboundOpen: false, // the confirmation before the alerts are turned on
+			switchKey: 0, // re-creates the switch when the confirmation is cancelled, so it goes back to off
 			noticeError: null, // the last failed call (an Error, or a text of the page)
 			hourSince: '22:00',
 			hourUntil: '07:00',
@@ -375,7 +393,18 @@ export default {
 			}
 		},
 		setActive(v) {
-			return this.noticeCmd('active', { on: !!v });
+			if (v) { this.outboundOpen = true; return null; } // on: ask first
+			return this.noticeCmd('active', { on: false });
+		},
+		cancelOutbound() {
+			this.outboundOpen = false;
+			this.switchKey += 1;
+		},
+		async confirmOutbound() {
+			this.outboundOpen = false;
+			const data = await this.noticeCmd('active', { on: true, acknowledge_outbound: true });
+			if (!data || data.error) this.switchKey += 1;
+			return data;
 		},
 		setKind(kind, v) {
 			return this.noticeCmd('type', { type: kind, on: !!v });

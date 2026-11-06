@@ -1,5 +1,11 @@
 # WorkshopActivity (Activity)
 
+<!-- notice:start -->
+> **Read before installing.** This plugin runs with real permissions on your machine. Read [SECURITY.md](SECURITY.md) and the section **Permissions and what it changes** below: they say what it can do, which files it writes, and what it sends outside your network (nothing, unless you turn a feature on).
+
+> **The Workshop users and roles do not protect DWC itself.** Anyone who can open DWC on your network can send G-code, move the machine, edit `config.g` and upload files, whatever the Workshop roles say: Duet has no roles of its own. Set a DWC password (`M551`) and keep the machine on a network you trust.
+<!-- notice:end -->
+
 
 
 Page `/Plugins/Activity` ("Activity"). What happened on the machine: summary of today / yesterday / 7 days, the full history of events with filters, phone notices (ntfy) with types, quiet hours and a camera photo or clip, and how to register live jobs sent by a program through the G-code bridge. Events are stored by the System service in the database (`duet.db`, table `activity`); each stores a message key plus parameters, and the page renders them in its own language.
@@ -172,7 +178,7 @@ Viewer: reads summary and history. Operator: can send the test notice. Technicia
 
 ## Permissions and what it changes
 
-Risk: **Low-medium (phone notices go to an Internet service)**. Read this before installing; the full document is `security.md` of the Workshop plugins.
+Risk: **Low-medium (phone notices go to an Internet service once YOU turn them on; they are off by default)**. Read this before installing; the full document is `security.md` of the Workshop plugins.
 
 **DSF permissions:** none. It is a page of DWC (it runs in your browser) and everything it does goes through the API of `WorkshopService`, which applies the roles (viewer, operator, technician, administrator) in the server.
 
@@ -182,10 +188,11 @@ Risk: **Low-medium (phone notices go to an Internet service)**. Read this before
 - the event history in the service database (7 daily backups kept)
 
 **What it needs outside the zip** (each one is a separate step you do on purpose and can undo):
-- phone notices use the free service ntfy.sh (or your own server); they need Internet access from the Pi
+- phone notices use the free service ntfy.sh (or your own server); they need Internet access from the Pi and are OFF until you turn them on
 
 **Safety notes:**
-- The notice topic works like a password: whoever knows it can read your notices. Leave notices off if you do not want data to leave the machine.
+- **Off by default.** Turning the phone notices on asks you to confirm, because from then on the event texts (and a camera photo or short video, if you choose one) are sent to a third-party server, `https://ntfy.sh` unless you set your own. Nothing is sent while they are off.
+- The notice topic works like a password: whoever knows it can read your notices. Keep it private.
 
 Uninstalling removes the plugin folder; your data in `0:/sys/workshop/` and `/opt/dsf/conf/workshop-*.json` stays.
 

@@ -2,7 +2,7 @@
   "id": "WorkshopActivity",
   "name": "Activity Log",
   "author": "jhonf441",
-  "version": "2.7.23",
+  "version": "2.7.28",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/jhonf441/WorkshopActivity",
   "tags": [
@@ -17,9 +17,9 @@
   "sbcDsfVersion": "3.6",
   "data": {},
   "dwcFiles": [
-    "css/WorkshopActivity.71441205.css",
-    "css/WorkshopActivity.71441205.css.gz",
-    "js/WorkshopActivity.655e8250.js",
-    "js/WorkshopActivity.655e8250.js.gz"
+    "css/WorkshopActivity.51499692.css",
+    "css/WorkshopActivity.51499692.css.gz",
+    "js/WorkshopActivity.7a9e1899.js",
+    "js/WorkshopActivity.7a9e1899.js.gz"
   ]
 }
