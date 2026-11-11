@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "plugin": "WorkshopActivity",
+  "namespace": "activity",
+  "prefixes": [
+    "activity",
+    "notifications"
+  ],
+  "ui": "ui:activity:open",
+  "operations": [
+    "activity.clear",
+    "activity.delete",
+    "activity.list",
+    "activity.summary",
+    "camera.status",
+    "notifications.active",
+    "notifications.destination",
+    "notifications.new_topic",
+    "notifications.option",
+    "notifications.quiet_hours",
+    "notifications.test",
+    "notifications.type",
+    "notifications.video"
+  ],
+  "shared": [
+    "camera.status"
+  ],
+  "restricted": [
+    "activity.clear",
+    "activity.delete"
+  ],
+  "targets": [],
+  "profiles": {
+    "readonly": {
+      "title": "ActivityReadOnly",
+      "capabilities": [
+        "activity.view",
+        "camera.view"
+      ]
+    },
+    "operator": {
+      "title": "ActivityOperator",
+      "capabilities": [
+        "activity.view",
+        "activity.write",
+        "camera.view"
+      ]
+    },
+    "admin": {
+      "title": "ActivityAdmin",
+      "capabilities": [
+        "activity.settings",
+        "activity.view",
+        "activity.write",
+        "camera.view"
+      ]
+    }
+  }
+}
