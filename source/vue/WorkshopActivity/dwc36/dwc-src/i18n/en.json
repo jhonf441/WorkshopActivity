@@ -1,4 +1,14 @@
 {
+	"subjects": {
+		"summary": "Today's summary",
+		"history_events": "Event history",
+		"delete_events": "Delete events",
+		"phone_alerts": "Phone alerts",
+		"alert_destination": "Alert destination",
+		"test_alert": "Test alert",
+		"quiet_hours": "Quiet hours",
+		"alert_events": "Events that alert"
+	},
 	"activity": {
 		"filters_on": "Active filters:",
 		"clear_filters": "Clear filters",

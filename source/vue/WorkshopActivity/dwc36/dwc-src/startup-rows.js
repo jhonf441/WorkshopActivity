@@ -23,7 +23,7 @@ export function rowsActivity(c) {
 	}
 	const a = c && c.notices;
 	if (a) {
-		const destination = !!(a.server && a.topic);
+		const destination = !!(a.server && a.topic_set);
 		out.push({
 			id: 'alerts',
 			state: !a.active ? 'example' : destination ? 'configured' : 'missing',

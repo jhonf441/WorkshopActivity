@@ -1,4 +1,14 @@
 {
+	"subjects": {
+		"summary": "Resumen de hoy",
+		"history_events": "Historial de eventos",
+		"delete_events": "Borrar eventos",
+		"phone_alerts": "Alertas de celular",
+		"alert_destination": "Destino de las alertas",
+		"test_alert": "Alerta de prueba",
+		"quiet_hours": "Horario de silencio",
+		"alert_events": "Eventos que avisan"
+	},
 	"activity": {
 		"filters_on": "Filtros activos:",
 		"clear_filters": "Quitar filtros",

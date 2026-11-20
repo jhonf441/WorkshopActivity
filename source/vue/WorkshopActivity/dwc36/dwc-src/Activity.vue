@@ -16,7 +16,7 @@
 		<div class="st-layout">
 		<side-tabs v-model="section" :items="sections" />
 		<div class="st-body">
-		<locked-cover v-if="lockedSection" :needed="lockedSection" />
+		<locked-cover v-if="lockedSection" :needed="lockedSection" :items="sections" :value="section" />
 		<div v-if="!lockedSection && section === 'today'">
 		<v-card class="mb-3">
 			<v-card-title class="text-subtitle-1">
@@ -31,7 +31,7 @@
 				<v-btn small outlined :loading="summaryLoading" @click="loadSummary"><v-icon small left>mdi-refresh</v-icon>{{ $t('plugins.WorkshopActivity.activity.refresh_summary') }}</v-btn>
 			</v-card-title>
 			<v-card-text>
-				<session-notice v-if="summaryRefusal" :kind="summaryRefusal" needed="viewer" />
+				<session-notice v-if="summaryRefusal" :kind="summaryRefusal" needed="viewer" :subject="$t('plugins.WorkshopActivity.subjects.summary')" />
 				<error-notice v-else-if="summaryError" :error="summaryError" retry @retry="loadSummary" />
 				<div v-else-if="!summary" class="grey--text">{{ $t('plugins.WorkshopActivity.activity.summary_loading') }}</div>
 				<template v-else>
@@ -130,7 +130,7 @@
 					<help-tip :title="ht('export_title')" :what="ht('export_what')" :why="ht('export_why')" :how="ht('export_how')" />
 				</div>
 
-				<session-notice v-if="historyRefusal" :kind="historyRefusal" needed="viewer" class="mt-2" />
+				<session-notice v-if="historyRefusal" :kind="historyRefusal" needed="viewer" class="mt-2" :subject="$t('plugins.WorkshopActivity.subjects.history_events')" />
 				<error-notice v-else-if="historyError" :error="historyError" retry class="mt-2" @retry="searchActivity(actOffset)" />
 				<v-simple-table v-if="rowsVisible.length > 0" dense class="mt-2 act-table">
 					<thead>
@@ -219,10 +219,10 @@
 						@click="cleanFiltered"
 					>{{ cleanArmed ? $t('plugins.WorkshopActivity.activity.tap_again_to_delete_n_events', { n: activityTotal }) : $t('plugins.WorkshopActivity.activity.delete_filtered_n', { n: activityTotal }) }}</v-btn>
 				</div>
-				<lock-reason v-if="deleteRefusal" :kind="deleteRefusal" need="technician" />
+				<lock-reason v-if="deleteRefusal && !(rowsVisible.length > 0)" :kind="deleteRefusal" need="technician" :subject="$t('plugins.WorkshopActivity.subjects.delete_events')" />
 				<div v-else-if="deleteMsg" class="text-caption mt-1" :class="deleteErr ? 'error--text' : 'success--text'">{{ deleteMsg }}</div>
-				<!-- deleting is a technician's: the buttons are not drawn for the others, so the reason is written here -->
-				<lock-reason v-if="rowsVisible.length > 0" op="activity.delete" need="technician" />
+				<!-- deleting is an administrator's: the buttons are not drawn for the others, so the reason is written here -->
+				<lock-reason v-if="rowsVisible.length > 0" :ops="deleteOps" min="admin" :subject="$t('plugins.WorkshopActivity.subjects.delete_events')" />
 
 				<div class="text-caption grey--text mt-2">
 					{{ $t('plugins.WorkshopActivity.activity.filters_by_date_and_type_directly') }}
@@ -269,7 +269,8 @@ import { colorMode } from './colors.js'
 import { api } from './workshop-api.js'
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared
 import ActivityNotices from './ActivityNotices.vue'
-import { roleMixin } from './role-mixin.js' // what the role sees and may do (vue/_shared)
+import { accessCanMixin } from './reason-mixin.js' // the answers of the service, by operation; includes what the role sees and may do (vue/_shared36)
+import { DELETE_OPS, SCREEN_OPS } from './access-groups.js'
 import { lockedItems, lockedNeed } from './role-view.js'
 import { currentIdentity, signedOut } from './workshop-auth.js'
 import { errorText } from './friendly-error.js'
@@ -288,7 +289,7 @@ import HelpTip from './HelpTip.vue' // vue/_shared36
 import { relative, resolve, asTexts, same } from './range-picker.js' // vue/_shared36
 
 export default {
-	mixins: [roleMixin],
+	mixins: [accessCanMixin],
 	// what the person who left had read must not stay (ESTANDAR 3): the summary, the history and the messages of the actions
 	sessionData: ['summary', 'summaryError', 'activityRows', 'activityTotal', 'activityKinds', 'historyOk', 'historyError', 'deleteMsg', 'deleteErr', 'deleteRefusal', 'open', 'armedId', 'cleanArmed'],
 	sessionErrors: ['summaryError', 'historyError', 'deleteMsg', 'deleteErr', 'deleteRefusal'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
@@ -296,6 +297,7 @@ export default {
 	data() {
 		return {
 			defaultRange: relative(7, 'days'), // the range the page opens with (the last 7 days): a different one counts as a filter
+			deleteOps: DELETE_OPS,
 			armedId: null, cleanArmed: false, deleteMsg: '', deleteErr: false, deleteRefusal: '',
 			actRange: relative(7, 'days'),
 			kindAll: KIND_ALL,
@@ -454,7 +456,7 @@ export default {
 			return rowsActivity({
 				history: this.historyOk,
 				events: this.activityTotal,
-				notices: c ? { active: !!c.active, server: c.server, topic: c.topic } : null
+				notices: c ? { active: !!c.active, server: c.server, topic_set: !!c.topic_set } : null
 			});
 		},
 		labels() {
@@ -478,6 +480,10 @@ export default {
 		sections(list) {
 			if (!list.some(x => x.id === this.section)) this.section = 'today';
 		}
+	},
+	created() {
+		// ONE call to auth.can for every group of the page (ActivityNotices and the reasons ask the same cache)
+		this.wantCan(SCREEN_OPS)
 	},
 	mounted() {
 		this.loadSummary();
