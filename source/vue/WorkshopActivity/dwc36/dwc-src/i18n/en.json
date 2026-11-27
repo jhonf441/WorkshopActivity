@@ -7,7 +7,8 @@
 		"alert_destination": "Alert destination",
 		"test_alert": "Test alert",
 		"quiet_hours": "Quiet hours",
-		"alert_events": "Events that alert"
+		"alert_events": "Events that alert",
+		"notice_channel": "Where to notify"
 	},
 	"activity": {
 		"filters_on": "Active filters:",
@@ -146,6 +147,9 @@
 		"failures_n": "{n} failures or stops in this list",
 		"alerts_on": "Phone alerts on",
 		"alerts_off": "Phone alerts off",
+		"when_today": "today {time}",
+		"when_yesterday": "yesterday {time}",
+		"when_date": "{day}-{month} {time}",
 		"last_event_at": "Last event: {time}",
 		"nav_history": "History",
 		"nav_alerts": "Phone alerts",
@@ -266,7 +270,30 @@
 		"outbound_cancel": "Cancel",
 		"outbound_enable": "Turn on",
 		"alerts_off_reason": "Alerts are off: turn them on above to change this.",
-		"topic_missing_reason": "There is no topic: write one and save the destination to be able to test."
+		"topic_missing_reason": "There is no topic: write one and save the destination to be able to test.",
+		"notices_title": "Notifications",
+		"phone_label": "Phone",
+		"notify_where_title": "Where to notify",
+		"notify_phone": "Phone",
+		"notify_device": "This device",
+		"notify_both": "Both",
+		"notify_where_hint": "Phone: the service sends the notice through ntfy. This device: a card on this screen, where every notice shows (nothing leaves the machine). Both: the two.",
+		"notify_phone_unavailable": "The phone is not ready: turn the phone notifications on and save a destination below to be able to choose Phone or Both.",
+		"notify_phone_setup_link": "Go to the phone setup",
+		"notify_device_look": "How the cards look, where they show and how many wait at once is one choice of this screen for every notice.",
+		"notify_device_look_open": "Open the notices of this screen",
+		"notify_test_phone": "Test on the phone",
+		"notify_test_device": "Test on this device",
+		"device_test_title": "Test notice",
+		"device_test_text": "This is how a notice looks on this device.",
+		"toast_close": "Close",
+		"toast_region": "Notices",
+		"toast_more_title": "More notices",
+		"toast_more_text": "{n} more notices waiting",
+		"help_where_title": "Where to notify",
+		"help_where_what": "Choose where the notices of the events you marked go: to the phone (ntfy, sent by the service), to a card on this device (where every notice shows) or to both.",
+		"help_where_why": "In the workshop the card on the screen is enough; the phone is for hearing about it away from the machine. With This device nothing leaves the machine.",
+		"help_where_how": "Pick a destination and press Test on this device. Phone and Both turn on when the phone is on and has a destination. The card shows on any page of DWC while DWC is open in this browser."
 	},
 	"index": {
 		"activity": "Activity"

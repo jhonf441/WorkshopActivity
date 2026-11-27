@@ -21,7 +21,6 @@
 		<v-card class="mb-3">
 			<v-card-title class="text-subtitle-1">
 				<v-icon class="mr-2">mdi-calendar-today</v-icon>{{ $t('plugins.WorkshopActivity.activity.summary_title') }}
-				<help-tip :title="ht('summary_title')" :what="ht('summary_what')" :why="ht('summary_why')" :how="ht('summary_how')" />
 				<v-spacer />
 				<v-btn-toggle v-model="summarySpan" mandatory dense color="primary" class="mr-2">
 					<v-btn small value="today">{{ $t('plugins.WorkshopActivity.activity.summary_today') }}</v-btn>
@@ -43,7 +42,7 @@
 							</v-card>
 						</v-col>
 					</v-row>
-					<div class="text-subtitle-2 mt-4 mb-1 d-flex align-center">{{ $t('plugins.WorkshopActivity.activity.summary_jobs') }}<help-tip :title="ht('summary_jobs_title')" :what="ht('summary_jobs_what')" :why="ht('summary_jobs_why')" /></div>
+					<div class="text-subtitle-2 mt-4 mb-1 d-flex align-center">{{ $t('plugins.WorkshopActivity.activity.summary_jobs') }}</div>
 					<div v-if="!summary.jobs.length" class="text-caption grey--text">{{ $t('plugins.WorkshopActivity.activity.summary_no_jobs') }}</div>
 					<v-simple-table v-else dense>
 						<tbody>
@@ -58,7 +57,7 @@
 							</tr>
 						</tbody>
 					</v-simple-table>
-					<div class="text-subtitle-2 mt-4 mb-1 d-flex align-center">{{ $t('plugins.WorkshopActivity.activity.summary_failures') }}<help-tip :title="ht('summary_failures_title')" :what="ht('summary_failures_what')" :why="ht('summary_failures_why')" /></div>
+					<div class="text-subtitle-2 mt-4 mb-1 d-flex align-center">{{ $t('plugins.WorkshopActivity.activity.summary_failures') }}</div>
 					<div v-if="!summary.faults.length" class="text-caption success--text"><v-icon x-small left color="success">mdi-check-circle</v-icon>{{ $t('plugins.WorkshopActivity.activity.summary_no_failures') }}</div>
 					<div v-for="f in summary.faults" :key="f.id" class="d-flex align-start py-1" style="gap:8px">
 						<span class="text-caption text-no-wrap grey--text">{{ hourRow(f.ts) }}</span>
@@ -66,36 +65,34 @@
 						<span class="text-body-2">{{ textEvent(f) }}</span>
 					</div>
 				</template>
+				<help-fold class="mt-3" :items="[{ title: ht('summary_title'), what: ht('summary_what'), why: ht('summary_why'), how: ht('summary_how') }, { title: ht('summary_jobs_title'), what: ht('summary_jobs_what'), why: ht('summary_jobs_why') }, { title: ht('summary_failures_title'), what: ht('summary_failures_what'), why: ht('summary_failures_why') }]" />
 			</v-card-text>
 		</v-card>
 		</div>
 		<div v-if="!lockedSection && section === 'history'">
 		<v-card class="mb-3">
-			<v-card-title><v-icon class="mr-2">mdi-history</v-icon>{{ $t('plugins.WorkshopActivity.activity.activity_history') }}<v-spacer /><help-tip :title="ht('history_title')" :what="ht('history_what')" :why="ht('history_why')" :how="ht('history_how')" /></v-card-title>
+			<v-card-title><v-icon class="mr-2">mdi-history</v-icon>{{ $t('plugins.WorkshopActivity.activity.activity_history') }}<v-spacer /></v-card-title>
 			<v-card-text>
 				<v-row dense>
 					<v-col cols="12" sm="6" class="d-flex align-center">
 						<range-picker v-model="actRange" />
-						<help-tip :title="ht('range_title')" :what="ht('range_what')" :why="ht('range_why')" />
 					</v-col>
 					<v-col cols="12" sm="3">
 						<div class="help-tip-row">
-							<v-select v-model="actKind" :items="[{ text: $t('plugins.WorkshopActivity.activity.all_paren'), value: kindAll }, ...activityKinds]" :label="$t('plugins.WorkshopActivity.activity.type')" dense hide-details />
-							<help-tip :title="ht('kind_title')" :what="ht('kind_what')" :why="ht('kind_why')" :how="ht('kind_how')" />
+							<v-select v-model="actKind" :items="[{ text: $t('plugins.WorkshopActivity.activity.all_paren'), value: kindAll }, ...activityKinds]" :label="$t('plugins.WorkshopActivity.activity.type')" dense outlined hide-details />
 						</div>
 					</v-col>
 					<v-col cols="12" sm="3" class="d-flex align-center">
-						<v-btn small color="primary" @click="searchActivity(0)" :loading="activityLoading">{{ $t('plugins.WorkshopActivity.activity.find') }}</v-btn>
+						<v-btn small depressed color="primary" @click="searchActivity(0)" :loading="activityLoading">{{ $t('plugins.WorkshopActivity.activity.find') }}</v-btn>
 						<v-checkbox
 							v-model="hideService" dense hide-details class="ml-3 mt-0 pt-0"
 							:label="$t('plugins.WorkshopActivity.activity.hide_service_restarts')" @change="searchActivity(0)"
 						/>
-						<help-tip :title="ht('hide_service_title')" :what="ht('hide_service_what')" :why="ht('hide_service_why')" :how="ht('hide_service_how')" />
 					</v-col>
 				</v-row>
 
 				<!-- Quick filter by type: the types present in the range, with their color -->
-				<div v-if="activityKinds.length" class="mt-3">
+				<div v-if="activityKinds.length" class="mt-3 act-kinds">
 					<v-chip
 						small class="mr-1 mb-1" outlined :class="{ 'wf-on': actKind === kindAll }"
 						@click="filterKind(kindAll)"
@@ -113,21 +110,17 @@
 				<div v-if="activeFilters.length" class="d-flex flex-wrap align-center mt-2" style="gap:6px">
 					<span class="text-body-small font-weight-medium">{{ $t('plugins.WorkshopActivity.activity.filters_on') }}</span>
 					<v-chip v-for="f in activeFilters" :key="f" small outlined class="wf-on">{{ f }}</v-chip>
-					<v-btn x-small text color="primary" @click="clearFilters">{{ $t('plugins.WorkshopActivity.activity.clear_filters') }}</v-btn>
+					<v-btn small text color="primary" @click="clearFilters">{{ $t('plugins.WorkshopActivity.activity.clear_filters') }}</v-btn>
 				</div>
 
 				<div class="d-flex flex-wrap align-center mt-2" style="gap:8px 16px">
 					<v-text-field
-						v-model="actText" :label="$t('plugins.WorkshopActivity.activity.search')" prepend-inner-icon="mdi-magnify" clearable dense hide-details
+						v-model="actText" :label="$t('plugins.WorkshopActivity.activity.search')" prepend-inner-icon="mdi-magnify" clearable dense outlined hide-details
 						style="max-width:280px" @keyup.enter="searchActivity(0)" @click:clear="actText = ''; searchActivity(0)"
 					/>
-					<help-tip :title="ht('search_title')" :what="ht('search_what')" :why="ht('search_why')" />
 					<v-checkbox v-model="group" dense hide-details class="mt-0 pt-0" :label="$t('plugins.WorkshopActivity.activity.group_repeated')" />
-					<help-tip :title="ht('group_title')" :what="ht('group_what')" :why="ht('group_why')" :how="ht('group_how')" />
 					<v-checkbox v-if="me" v-model="onlyMine" dense hide-details class="mt-0 pt-0" :label="$t('plugins.WorkshopActivity.activity.only_mine')" :title="$t('plugins.WorkshopActivity.activity.only_mine_hint')" />
-					<help-tip v-if="me" :title="ht('mine_title')" :what="ht('mine_what')" :why="ht('mine_why')" />
-					<v-btn x-small outlined :loading="exporting" @click="exportCsv"><v-icon x-small left>mdi-download</v-icon>{{ $t('plugins.WorkshopActivity.activity.export_csv') }}</v-btn>
-					<help-tip :title="ht('export_title')" :what="ht('export_what')" :why="ht('export_why')" :how="ht('export_how')" />
+					<v-btn small outlined :loading="exporting" @click="exportCsv"><v-icon small left>mdi-download</v-icon>{{ $t('plugins.WorkshopActivity.activity.export_csv') }}</v-btn>
 				</div>
 
 				<session-notice v-if="historyRefusal" :kind="historyRefusal" needed="viewer" class="mt-2" :subject="$t('plugins.WorkshopActivity.subjects.history_events')" />
@@ -137,7 +130,7 @@
 						<tr>
 							<th style="width:64px">{{ $t('plugins.WorkshopActivity.activity.time') }}</th>
 							<th style="width:140px">{{ $t('plugins.WorkshopActivity.activity.type') }}</th>
-							<th><span class="d-inline-flex align-center">{{ $t('plugins.WorkshopActivity.activity.description') }}<help-tip :title="ht('table_title')" :what="ht('table_what')" :why="ht('table_why')" :how="ht('table_how')" /></span></th>
+							<th><span class="d-inline-flex align-center">{{ $t('plugins.WorkshopActivity.activity.description') }}</span></th>
 							<th class="text-right" style="width:84px">{{ $t('plugins.WorkshopActivity.activity.duration') }}</th>
 							<th class="text-right" style="width:64px">kWh</th>
 							<th style="width:70px"></th>
@@ -181,11 +174,11 @@
 								<td class="text-right">{{ it.ev.consumption_kwh != null ? it.ev.consumption_kwh.toFixed(3) : '' }}</td>
 								<td class="text-right" style="white-space:nowrap">
 									<v-icon v-if="it.ev.detail" small class="mr-1" :title="$t('plugins.WorkshopActivity.activity.details')">{{ open['e' + it.ev.id] ? 'mdi-chevron-up' : 'mdi-information-outline' }}</v-icon>
-									<v-btn
-										v-if="it.ev.id != null && canDo('activity.delete')" x-small :text="armedId !== it.ev.id" :color="armedId === it.ev.id ? 'error' : 'grey'"
-										:title="armedId === it.ev.id ? $t('plugins.WorkshopActivity.activity.tap_again_to_delete_this_event') : $t('plugins.WorkshopActivity.activity.delete_this_event')"
-										@click.stop="deleteRow(it.ev)"
-									>{{ armedId === it.ev.id ? $t('plugins.WorkshopActivity.activity.delete') : $t('plugins.WorkshopActivity.activity.delete_2') }}</v-btn>
+									<wf-action-button
+										v-if="it.ev.id != null && canDo('activity.delete')" danger variant="text" class="act-del wf-hit" :action="rowTarget === it.ev.id ? rowDelete : null" :label="$t('plugins.WorkshopActivity.activity.delete_2')" :arm-label="$t('plugins.WorkshopActivity.activity.delete')"
+										:title="rowTarget === it.ev.id && rowDelete.state === 'armed' ? $t('plugins.WorkshopActivity.activity.tap_again_to_delete_this_event') : $t('plugins.WorkshopActivity.activity.delete_this_event')"
+										@click.native.stop @run="deleteRow(it.ev)"
+									/>
 								</td>
 							</tr>
 							<tr v-else :key="it.key" class="act-detail">
@@ -205,28 +198,31 @@
 				</v-simple-table>
 				<div v-else-if="!historyError" class="text-caption grey--text mt-2">{{ $t('plugins.WorkshopActivity.activity.no_events_in_range_filter') }}</div>
 
-				<div class="d-flex align-center mt-2" v-if="activityTotal > 0">
-					<v-btn x-small text :disabled="actOffset === 0" @click="searchActivity(Math.max(0, actOffset - actLimit))">{{ $t('plugins.WorkshopActivity.activity.previous') }}</v-btn>
-					<span class="text-caption grey--text mx-2">
+				<div class="d-flex flex-wrap align-center mt-2 act-pager" v-if="activityTotal > 0" style="gap:4px 8px">
+					<v-btn small text :disabled="actOffset === 0" @click="searchActivity(Math.max(0, actOffset - actLimit))">{{ $t('plugins.WorkshopActivity.activity.previous') }}</v-btn>
+					<span class="text-caption grey--text text-no-wrap">
 						{{ $t('plugins.WorkshopActivity.activity.range_of_total', { from: actOffset + 1, to: Math.min(actOffset + actLimit, activityTotal), total: activityTotal }) }}
 					</span>
-					<v-btn x-small text :disabled="actOffset + actLimit >= activityTotal" @click="searchActivity(actOffset + actLimit)">{{ $t('plugins.WorkshopActivity.activity.next') }}</v-btn>
+					<v-btn small text :disabled="actOffset + actLimit >= activityTotal" @click="searchActivity(actOffset + actLimit)">{{ $t('plugins.WorkshopActivity.activity.next') }}</v-btn>
 					<v-spacer />
-					<help-tip v-if="canDo('activity.clear')" :title="ht('delete_filtered_title')" :what="ht('delete_filtered_what')" :why="ht('delete_filtered_why')" :if-missing="ht('delete_filtered_missing')" :how="ht('delete_filtered_how')" />
-					<v-btn
-						v-if="canDo('activity.clear')" x-small :outlined="!cleanArmed" :color="cleanArmed ? 'error' : 'grey'"
+					<wf-action-button
+						v-if="canDo('activity.clear')" danger :action="cleanDelete" :label="$t('plugins.WorkshopActivity.activity.delete_filtered_n', { n: activityTotal })" :arm-label="$t('plugins.WorkshopActivity.activity.tap_again_to_delete_n_events', { n: activityTotal })"
 						:title="$t('plugins.WorkshopActivity.activity.delete_filtered_hint')"
-						@click="cleanFiltered"
-					>{{ cleanArmed ? $t('plugins.WorkshopActivity.activity.tap_again_to_delete_n_events', { n: activityTotal }) : $t('plugins.WorkshopActivity.activity.delete_filtered_n', { n: activityTotal }) }}</v-btn>
+						@run="cleanFiltered"
+					/>
 				</div>
 				<lock-reason v-if="deleteRefusal && !(rowsVisible.length > 0)" :kind="deleteRefusal" need="technician" :subject="$t('plugins.WorkshopActivity.subjects.delete_events')" />
-				<div v-else-if="deleteMsg" class="text-caption mt-1" :class="deleteErr ? 'error--text' : 'success--text'">{{ deleteMsg }}</div>
+				<!-- what happened to the delete (sending, done, refused): the state machine of the family; a refusal by session or role is told by the reason above -->
+				<wf-result v-else-if="rowDelete.state !== 'idle'" class="mt-1" :action="rowDelete" @retry="rowDelete.retry()" />
+				<wf-result v-else-if="cleanDelete.state !== 'idle'" class="mt-1" :action="cleanDelete" @retry="cleanDelete.retry()" />
+				<wf-result v-if="exportFailed" class="mt-1" state="error" :error="{ code: 'internal', message: exportFailed }" :retry="false" />
 				<!-- deleting is an administrator's: the buttons are not drawn for the others, so the reason is written here -->
 				<lock-reason v-if="rowsVisible.length > 0" :ops="deleteOps" min="admin" :subject="$t('plugins.WorkshopActivity.subjects.delete_events')" />
 
 				<div class="text-caption grey--text mt-2">
 					{{ $t('plugins.WorkshopActivity.activity.filters_by_date_and_type_directly') }}
 				</div>
+				<help-fold class="mt-3" :items="[{ title: ht('history_title'), what: ht('history_what'), why: ht('history_why'), how: ht('history_how') }, { title: ht('range_title'), what: ht('range_what'), why: ht('range_why') }, { title: ht('kind_title'), what: ht('kind_what'), why: ht('kind_why'), how: ht('kind_how') }, { title: ht('hide_service_title'), what: ht('hide_service_what'), why: ht('hide_service_why'), how: ht('hide_service_how') }, { title: ht('search_title'), what: ht('search_what'), why: ht('search_why') }, { title: ht('group_title'), what: ht('group_what'), why: ht('group_why'), how: ht('group_how') }, (me) ? { title: ht('mine_title'), what: ht('mine_what'), why: ht('mine_why') } : null, { title: ht('export_title'), what: ht('export_what'), why: ht('export_why'), how: ht('export_how') }, { title: ht('table_title'), what: ht('table_what'), why: ht('table_why'), how: ht('table_how') }, (canDo('activity.clear')) ? { title: ht('delete_filtered_title'), what: ht('delete_filtered_what'), why: ht('delete_filtered_why'), ifMissing: ht('delete_filtered_missing'), how: ht('delete_filtered_how') } : null].filter(Boolean)" />
 			</v-card-text>
 		</v-card>
 
@@ -234,7 +230,7 @@
 		<activity-notices v-if="!lockedSection && section === 'notices'" />
 		<div v-if="!lockedSection && section === 'live'">
 		<v-card class="mb-3">
-			<v-card-title>{{ $t('plugins.WorkshopActivity.activity.log_live_jobs') }}<v-spacer /><help-tip :title="ht('live_title')" :what="ht('live_what')" :why="ht('live_why')" :how="ht('live_how')" /></v-card-title>
+			<v-card-title>{{ $t('plugins.WorkshopActivity.activity.log_live_jobs') }}<v-spacer /></v-card-title>
 			<v-card-text>
 				<div class="text-body-2">
 					{{ $t('plugins.WorkshopActivity.activity.a_live_job_streamed_line_by') }} <b>GCode</b>{{ $t('plugins.WorkshopActivity.activity.each_job_goes_into_the_history') }}
@@ -246,6 +242,7 @@
 				<div class="text-caption grey--text mt-2">
 					{{ $t('plugins.WorkshopActivity.activity.if_you_stop_a_job_by') }}
 				</div>
+				<help-fold class="mt-3" :items="[{ title: ht('live_title'), what: ht('live_what'), why: ht('live_why'), how: ht('live_how') }]" />
 			</v-card-text>
 		</v-card>
 		</div>
@@ -285,20 +282,23 @@ import { noticeOf } from './activity-notice.js'
 import { styles, STYLE_OTHER, cancelled } from './event-styles.js'
 import { sectionColor } from './section-colors.js' // the color of each section (--wf-sec)
 import RangePicker from './RangePicker.vue' // vue/_shared36
-import HelpTip from './HelpTip.vue' // vue/_shared36
+import HelpFold from './HelpFold.vue' // vue/_shared36
 import { relative, resolve, asTexts, same } from './range-picker.js' // vue/_shared36
+import WfActionButton from './WfActionButton.vue' // vue/_shared36 (FASE2)
+import WfResult from './WfResult.vue' // vue/_shared36 (FASE2)
+import { createAction } from './workshop-action.js' // vue/_shared36 (FASE2)
 
 export default {
 	mixins: [accessCanMixin],
 	// what the person who left had read must not stay (ESTANDAR 3): the summary, the history and the messages of the actions
-	sessionData: ['summary', 'summaryError', 'activityRows', 'activityTotal', 'activityKinds', 'historyOk', 'historyError', 'deleteMsg', 'deleteErr', 'deleteRefusal', 'open', 'armedId', 'cleanArmed'],
-	sessionErrors: ['summaryError', 'historyError', 'deleteMsg', 'deleteErr', 'deleteRefusal'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { HelpTip, RangePicker, SideTabs, PageHeader, LockedCover, ServiceNotice: ServiceNotice, StartupPanel: StartupPanel, ErrorNotice, ActivityNotices, SessionNotice, LockReason },
+	sessionData: ['summary', 'summaryError', 'activityRows', 'activityTotal', 'activityKinds', 'historyOk', 'historyError', 'exportFailed', 'open'],
+	sessionErrors: ['summaryError', 'historyError', 'exportFailed'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
+	components: { HelpFold, RangePicker, SideTabs, PageHeader, LockedCover, ServiceNotice: ServiceNotice, StartupPanel: StartupPanel, ErrorNotice, ActivityNotices, SessionNotice, LockReason, WfActionButton, WfResult },
 	data() {
 		return {
 			defaultRange: relative(7, 'days'), // the range the page opens with (the last 7 days): a different one counts as a filter
 			deleteOps: DELETE_OPS,
-			armedId: null, cleanArmed: false, deleteMsg: '', deleteErr: false, deleteRefusal: '',
+			rowTarget: null, exportFailed: '', rowDelete: this.deleteAction('activity.delete'), cleanDelete: this.deleteAction('activity.clear'),
 			actRange: relative(7, 'days'),
 			kindAll: KIND_ALL,
 			actKind: KIND_ALL,
@@ -362,6 +362,12 @@ export default {
 		lockedSection() {
 			return lockedNeed(this.allSections, this.section, op => this.canDo(op));
 		},
+		// a refused delete is told by its cause (no session / role)
+		deleteRefusal() {
+			void this.identityTick;
+			const e = this.rowDelete.state === 'error' ? this.rowDelete.error : this.cleanDelete.state === 'error' ? this.cleanDelete.error : null;
+			return e ? refusalKind(e, signedOut()) : '';
+		},
 		// a refused summary / history is told by its cause (no session / role), never left as a blank card
 		summaryRefusal() {
 			void this.identityTick;
@@ -406,7 +412,7 @@ export default {
 		},
 		lastEvent() {
 			const e = this.activityRows[0];
-			return e ? String(e.ts).replace('T', ' ').slice(0, 16) : '';
+			return e ? this.whenText(e.ts, new Date()) : '';
 		},
 		// display list: day separators, groups of repeated events, events and their detail rows
 		rowsShow() {
@@ -490,7 +496,8 @@ export default {
 		this.searchActivity(0);
 	},
 	beforeDestroy() {
-		clearTimeout(this._armTimer);
+		this.rowDelete.dispose();
+		this.cleanDelete.dispose();
 	},
 	methods: {
 		ht(k) {
@@ -500,6 +507,8 @@ export default {
 		onSessionChange() {
 			const narrowed = this.onlyMine; // the filter "only mine" is of the person who left: clearing it searches again by itself (watcher)
 			this.onlyMine = false;
+			this.rowDelete.reset(); // what was in the air belonged to the person who left
+			this.cleanDelete.reset();
 			this.loadSummary();
 			if (!narrowed) this.searchActivity(this.actOffset);
 		},
@@ -540,6 +549,16 @@ export default {
 			const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
 			return h ? `${h} h ${m} min` : `${m} min ${s % 60 ? (s % 60) + ' s' : ''}`.trim();
 		},
+		// "today 09:23", "yesterday 18:05", "23-nov 22:47": the last event in words
+		whenText(ts, now) {
+			const s = String(ts).replace('T', ' ');
+			const d = s.slice(0, 10), time = s.slice(11, 16);
+			const iso = x => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+			if (d === iso(now)) return i18n.t('plugins.WorkshopActivity.activity.when_today', { time });
+			if (d === iso(new Date(now.getTime() - 86400000))) return i18n.t('plugins.WorkshopActivity.activity.when_yesterday', { time });
+			const mon = i18n.t('plugins.WorkshopActivity.activity.months_short').split(',')[Number(d.slice(5, 7)) - 1];
+			return i18n.t('plugins.WorkshopActivity.activity.when_date', { day: Number(d.slice(8, 10)), month: String(mon || '').toLowerCase(), time });
+		},
 		day(ts) {
 			return (ts || '').slice(0, 10);
 		},
@@ -558,37 +577,26 @@ export default {
 			this.actKind = t;
 			this.searchActivity(0);
 		},
-		// Delete (2026-10-09): double tap to confirm, no dialogs.
-		arm(fn) {
-			clearTimeout(this._armTimer);
-			this._armTimer = setTimeout(() => { this.armedId = null; this.cleanArmed = false; }, 4000);
-			fn();
+		// Delete: double touch to confirm (createAction, workshop-action.js: 4000 ms, one request at a time, sending / done / refused told by WfResult)
+		deleteAction(op) {
+			return createAction({
+				run: async args => {
+					const data = await api(op, args);
+					if (data.error) throw new Error(data.error);
+					return { text: i18n.t('plugins.WorkshopActivity.activity.deleted_n_events', { n: data.deleted }), data };
+				},
+				arm: 'double',
+				after: () => this.searchActivity(this.actOffset >= this.activityTotal - 1 ? Math.max(0, this.actOffset - this.actLimit) : this.actOffset)
+			});
 		},
-		async deleteRow(ev) {
-			if (this.armedId !== ev.id) return this.arm(() => { this.armedId = ev.id; this.cleanArmed = false; });
-			this.armedId = null;
-			await this.executeDeleted('activity.delete', { id: Number(ev.id) });
+		deleteRow(ev) {
+			if (this.rowTarget !== ev.id) { this.rowDelete.cancel(); this.cleanDelete.cancel(); }
+			this.rowTarget = ev.id;
+			this.rowDelete.run({ id: Number(ev.id) });
 		},
-		async cleanFiltered() {
-			if (!this.cleanArmed) return this.arm(() => { this.cleanArmed = true; this.armedId = null; });
-			this.cleanArmed = false;
-			await this.executeDeleted('activity.clear', this.queryFilter());
-		},
-		async executeDeleted(op, args) {
-			this.deleteMsg = '';
-			this.deleteErr = false;
-			this.deleteRefusal = '';
-			try {
-				const data = await api(op, args);
-				if (data.error) throw new Error(data.error);
-				this.deleteMsg = i18n.t('plugins.WorkshopActivity.activity.deleted_n_events', { n: data.deleted });
-			} catch (e) {
-				this.deleteRefusal = refusalKind(e, signedOut());
-				this.deleteErr = !this.deleteRefusal;
-				this.deleteMsg = this.deleteRefusal ? '' : i18n.t('plugins.WorkshopActivity.activity.could_not_delete', { error: errorText(e, ts) });
-			}
-			const off = this.actOffset >= this.activityTotal - 1 ? Math.max(0, this.actOffset - this.actLimit) : this.actOffset;
-			this.searchActivity(off);
+		cleanFiltered() {
+			this.rowDelete.cancel();
+			this.cleanDelete.run(this.queryFilter());
 		},
 		toggle(key) {
 			this.$set(this.open, key, !this.open[key]);
@@ -621,6 +629,7 @@ export default {
 		// downloads every event of the current filter (up to 5000) as CSV
 		async exportCsv() {
 			this.exporting = true;
+			this.exportFailed = '';
 			try {
 				const filas = [];
 				let total = Infinity;
@@ -630,12 +639,10 @@ export default {
 					filas.push(...(r.rows || []));
 				}
 				if (!exchangeExportCsv(activityCsvBase(this.rangeTexts()), ACTIVITY_CSV_COLUMNS, activityCsvRows(filas)).ok) {
-					this.deleteErr = true;
-					this.deleteMsg = ts('exchange_export_failed');
+					this.exportFailed = ts('exchange_export_failed');
 				}
 			} catch (e) {
-				this.deleteErr = true;
-				this.deleteMsg = errorText(e, ts);
+				this.exportFailed = errorText(e, ts);
 			} finally {
 				this.exporting = false;
 			}
@@ -716,15 +723,14 @@ export default {
 </script>
 
 <style scoped>
+.act-del.wf-btn.wf-act.wf-act--text:not(.wf-x) { min-height: 32px; }
 .act-click { cursor: pointer; }
 .act-sub td:first-child { padding-left: 24px !important; }
 .act-detail td { background: rgba(255, 255, 255, 0.04); padding-top: 6px !important; padding-bottom: 6px !important; }
 .act-det-group { min-width: 200px; }
 .act-table .act-day td {
-	font-size: 11px !important;
+	font-size: 12px !important;
 	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
 	opacity: 0.7;
 	height: 28px !important;
 	padding-top: 10px !important;
@@ -732,5 +738,27 @@ export default {
 }
 .act-table .act-row td {
 	vertical-align: middle;
+}
+
+/* Narrow window (QA r2 A-02): the table folds into stacked rows (time, type and actions on the first line, the description under them, duration
+   and energy last) so the description is never off to the right, and the pager and chips stay inside the card. */
+.act-pager > .spacer { flex: 1 1 8px; }
+.act-table .v-chip, .act-kinds .v-chip { max-width: 100%; height: auto; min-height: 24px; }
+.act-table .v-chip >>> .v-chip__content, .act-kinds .v-chip >>> .v-chip__content { white-space: normal; min-width: 0; }
+@media (max-width: 640px) {
+	.act-table table, .act-table tbody { display: block; width: 100%; }
+	.act-table thead { display: none; }
+	.act-table tr.act-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; column-gap: 8px; padding: 4px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.2); }
+	.act-table tr.act-row > td { display: block; height: auto !important; min-width: 0; padding: 2px 4px !important; border: 0 !important; text-align: left !important; }
+	.act-table tr.act-row > td:nth-child(1) { grid-column: 1; grid-row: 1; }
+	.act-table tr.act-row > td:nth-child(2) { grid-column: 2; grid-row: 1; }
+	.act-table tr.act-row > td:nth-child(2) .v-chip { max-width: 100%; }
+	.act-table tr.act-row > td:nth-child(6) { grid-column: 1 / -1; grid-row: 4; justify-self: end; }
+	.act-table tr.act-row > td:nth-child(3) { grid-column: 1 / -1; grid-row: 2; overflow-wrap: anywhere; }
+	.act-table tr.act-row > td:nth-child(4) { grid-column: 1 / 3; grid-row: 3; }
+	.act-table tr.act-row > td:nth-child(5) { grid-column: 3; grid-row: 3; justify-self: end; }
+	.act-table tr.act-row > td:empty { display: none; }
+	.act-table tr.act-day, .act-table tr.act-detail { display: block; }
+	.act-table tr.act-day > td, .act-table tr.act-detail > td { display: block; }
 }
 </style>

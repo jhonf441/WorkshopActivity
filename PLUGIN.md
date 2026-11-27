@@ -10,7 +10,7 @@
 
 Page `/Plugins/Activity` ("Activity"). What happened on the machine: summary of today / yesterday / 7 days, the full history of events with filters, phone notices (ntfy) with types, quiet hours and a camera photo or clip, and how to register live jobs sent by a program through the G-code bridge. Events are stored by the System service in the database (`duet.db`, table `activity`); each stores a message key plus parameters, and the page renders them in its own language.
 
-Version documented: 2.7.x on DWC 3.6.3.
+Version documented: 2.12.x on DWC 3.6.3.
 
 ## 1. Requirements
 
@@ -22,12 +22,12 @@ Version documented: 2.7.x on DWC 3.6.3.
 
 ## 3. Functions
 
-The page is "Activity" (side menu: Plugins > Activity). Its own side bar has four entries (icons only when collapsed with "<<"): Today, History, Phone alerts, Live jobs. Job names are blurred in the pictures.
+The page is "Activity" (side menu: Plugins > Activity). Its own side bar has four entries (icons only when collapsed with "<<"): Today, History, Phone alerts, Live jobs.
 
 ### Page header
 
 #### Header chips
-- What: one-line state: "Attention: N" (events that need your look), "N events" (events in the history), "Phone alerts on/off" and "Last event" with date and time.
+- What: one-line state: the plugin version, "Attention: N" (events that need your look), "N events" (events in the history), "Phone alerts on/off", "Last event" with day and time and, while the first setup is unfinished, "N steps pending".
 - Where: right side of the page header "Activity" (picture 1, top right).
 - How: nothing to press.
 - Watch out: read only.
@@ -41,7 +41,7 @@ The page is "Activity" (side menu: Plugins > Activity). Its own side bar has fou
 
 ![Today](https://raw.githubusercontent.com/jhonf441/WorkshopActivity/main/img/01-today-summary.png)
 
-Picture 1: "Summary" card: period buttons, tiles, the finished jobs list (names blurred) and below it the failures list.
+Picture 1: "Summary" card: period buttons, tiles, the finished jobs list and below it the failures list.
 
 #### Summary of a period
 - What: counters for the chosen period: Jobs started, Finished, Cancelled, Job time, Energy of the jobs, Errors (red), Emergency stops, Machine warnings (orange).
@@ -63,15 +63,15 @@ Picture 1: "Summary" card: period buttons, tiles, the finished jobs list (names 
 
 ![History](https://raw.githubusercontent.com/jhonf441/WorkshopActivity/main/img/02-history-filters.png)
 
-Picture 2: "Activity history": date range, Type, Find, "Hide service restarts", type chips, search box, "Group repeated", "Export CSV" and the table with a Delete link per row (names blurred).
+Picture 2: "Activity history": the date-range button, Type, Find, "Hide service restarts", type chips, search box, "Group repeated", "Export CSV" and the table with a Delete link per row.
 
 #### Date range, type and Find
-- What: shows the events between "From" and "To" (default: the last 7 days) of one type or all.
-- Where: top row of "Activity history" (picture 2).
-- How: 1. Pick "From" and "To". 2. Pick "Type" or press a type chip. 3. Press "Find".
+- What: shows the events of the chosen days (default: the last 7 days) of one type or all.
+- Where: top row of "Activity history" (picture 2); the date-range button reads "Last 7 d" by default.
+- How: 1. Press the date-range button and pick the days. 2. Pick "Type" or press a type chip. 3. Press "Find".
 
 #### Type chips
-- What: one chip per event type (All, Database, Black box, Calibration, Camera, Config, Emergency, Error, Fire, Protection, System restart, Service down, WiFi, Finished, Pause, Start, Mode, Warning, Energy, Preset, Risk, Service, System powered on, Zones...) to filter the list.
+- What: one chip per event type (All, Start, Finished, Warning, Error, Emergency, Mode, Zones, Camera, Config, Service...: only the types that exist in the history) to filter the list.
 - Where: below the first row (picture 2).
 - How: press a chip; press "All" to clear.
 
@@ -92,7 +92,7 @@ Picture 2: "Activity history": date range, Type, Find, "Hide service restarts", 
 - Watch out: export before the history cleans old events by age. it downloads a file.
 
 #### Event table, details and Delete
-- What: table TIME, TYPE, DESCRIPTION, DURATION, KWH. The "i" icon at the right of a row shows details (who and which role caused it); "Delete" removes that row.
+- What: table Time, Type, Description, Duration, kWh; each row also shows the mode and the person that caused it. The "i" icon at the right of a row shows details (who and which role caused it); "Delete" removes that row.
 - Where: table at the bottom of picture 2.
 - How: press "i" for details.
 - Watch out: "Delete" is administrator only (`activity.delete`) and permanent; not pressed.
@@ -101,11 +101,11 @@ Picture 2: "Activity history": date range, Type, Find, "Hide service restarts", 
 
 ![Destination](https://raw.githubusercontent.com/jhonf441/WorkshopActivity/main/img/03-phone-destination.png)
 
-Picture 3: top of "Phone notifications": the master switch (top right), Server and Topic (blurred: the topic is like a password), the buttons Save destination / Test / Generate new topic (red rectangle) and the last sent line.
+Picture 3: top of "Notifications": the Phone switch (top right), Server and Topic (a made-up topic here: yours is like a password), the buttons Save destination / Test / Generate new topic (red rectangle) and the last sent line.
 
 #### Phone notifications switch
 - What: turns notices to the phone (ntfy app, Android/iOS) on or off. Events are always saved in the history.
-- Where: top right of the "Phone notifications" card (picture 3).
+- Where: top right of the "Notifications" card, labelled "Phone" (picture 3).
 - How: press the switch.
 
 #### Server and topic: Save destination, Test, Generate new topic
@@ -122,7 +122,7 @@ Picture 3: top of "Phone notifications": the master switch (top right), Server a
 
 ![Event types](https://raw.githubusercontent.com/jhonf441/WorkshopActivity/main/img/04-phone-event-types.png)
 
-Picture 4: "Quiet hours" and "Which events to notify and how", with the first two type cards.
+Picture 4: "Quiet hours" and "Which events to notify and how", with the first type cards.
 
 #### Notification camera and video length
 - What: the camera whose photo or video is attached and the video length (5 s). The video arrives as a second silent notice.

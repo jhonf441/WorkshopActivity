@@ -7,7 +7,8 @@
 		"alert_destination": "Destino de las alertas",
 		"test_alert": "Alerta de prueba",
 		"quiet_hours": "Horario de silencio",
-		"alert_events": "Eventos que avisan"
+		"alert_events": "Eventos que avisan",
+		"notice_channel": "Dónde avisar"
 	},
 	"activity": {
 		"filters_on": "Filtros activos:",
@@ -146,6 +147,9 @@
 		"failures_n": "{n} fallas o paros en esta lista",
 		"alerts_on": "Avisos al celular activados",
 		"alerts_off": "Avisos al celular apagados",
+		"when_today": "hoy {time}",
+		"when_yesterday": "ayer {time}",
+		"when_date": "{day}-{month} {time}",
 		"last_event_at": "Último evento: {time}",
 		"nav_history": "Historial",
 		"nav_alerts": "Avisos al celular",
@@ -266,7 +270,30 @@
 		"outbound_cancel": "Cancelar",
 		"outbound_enable": "Encender",
 		"alerts_off_reason": "Las alertas están apagadas: enciéndelas arriba para cambiar esto.",
-		"topic_missing_reason": "Falta el tema: escribe uno y guarda el destino para poder probar."
+		"topic_missing_reason": "Falta el tema: escribe uno y guarda el destino para poder probar.",
+		"notices_title": "Notificaciones",
+		"phone_label": "Celular",
+		"notify_where_title": "Dónde avisar",
+		"notify_phone": "Celular",
+		"notify_device": "Este equipo",
+		"notify_both": "Ambos",
+		"notify_where_hint": "Celular: el servicio manda el aviso por ntfy. Este equipo: una tarjeta en esta pantalla, en el lugar común de los avisos (sin salir de la máquina). Ambos: los dos.",
+		"notify_phone_unavailable": "El celular no está listo: enciende las notificaciones del celular y guarda un destino más abajo para poder elegir Celular o Ambos.",
+		"notify_phone_setup_link": "Ir a configurar el celular",
+		"notify_device_look": "Cómo se ven las tarjetas, dónde salen y cuántas esperan a la vez es una sola elección de esta pantalla para todos los avisos.",
+		"notify_device_look_open": "Abrir los avisos de esta pantalla",
+		"notify_test_phone": "Probar en el celular",
+		"notify_test_device": "Probar en este equipo",
+		"device_test_title": "Aviso de prueba",
+		"device_test_text": "Así se verá un aviso en este equipo.",
+		"toast_close": "Cerrar",
+		"toast_region": "Avisos",
+		"toast_more_title": "Más avisos",
+		"toast_more_text": "{n} avisos más esperando",
+		"help_where_title": "Dónde avisar",
+		"help_where_what": "Elige a dónde llegan los avisos de los eventos que marcaste: al celular (ntfy, lo manda el servicio), a una tarjeta en este equipo (en el lugar común de los avisos) o a ambos.",
+		"help_where_why": "En el taller basta la tarjeta de la pantalla; el celular sirve para enterarte lejos de la máquina. Con Este equipo no sale nada fuera de la máquina.",
+		"help_where_how": "Elige un destino y pulsa Probar en este equipo. Celular y Ambos se activan cuando el celular está encendido y tiene destino. La tarjeta sale en cualquier página de DWC mientras DWC esté abierto en este navegador."
 	},
 	"index": {
 		"activity": "Actividad"

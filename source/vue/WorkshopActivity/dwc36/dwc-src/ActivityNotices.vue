@@ -1,32 +1,22 @@
 <template>
 	<v-card class="mb-3">
 		<v-card-title>
-			{{ $t('plugins.WorkshopActivity.activity.phone_notifications') }}
-			<help-tip :title="ht('notices_title')" :what="ht('notices_what')" :why="ht('notices_why')" :how="ht('notices_how')" />
+			{{ $t('plugins.WorkshopActivity.activity.notices_title') }}
 			<v-spacer />
+			<span v-if="notice" class="text-caption mr-3">{{ $t('plugins.WorkshopActivity.activity.phone_label') }}</span>
 			<v-switch
 				v-if="notice" :key="'alerts-switch-' + switchKey" :input-value="notice.config.active" :disabled="!activeAllowed" dense hide-details class="mt-0"
 				:label="notice.config.active ? $t('plugins.WorkshopActivity.activity.on_plural') : $t('plugins.WorkshopActivity.activity.off_plural')"
 				@change="setActive"
 			/>
 		</v-card-title>
+		<wf-result v-if="activate.state === 'sending' || activate.state === 'done'" class="mx-4 mb-2" :action="activate" />
 		<lock-reason v-if="notice" :ops="activeOps" min="technician" class="mx-4 mb-2" :subject="$t('plugins.WorkshopActivity.subjects.phone_alerts')" />
 		<!-- Turning the alerts on sends data to a third-party server: the owner confirms it once, here (the service refuses without it too) -->
-		<v-dialog v-model="outboundOpen" max-width="520" @input="v => { if (!v) cancelOutbound(); }">
-			<v-card>
-				<v-card-title>{{ $t('plugins.WorkshopActivity.activity.outbound_title') }}</v-card-title>
-				<v-card-text>
-					<p>{{ $t('plugins.WorkshopActivity.activity.outbound_what', { server: (notice && notice.config && notice.config.server) || 'https://ntfy.sh' }) }}</p>
-					<p>{{ $t('plugins.WorkshopActivity.activity.outbound_photos') }}</p>
-					<p class="mb-0">{{ $t('plugins.WorkshopActivity.activity.outbound_topic') }}</p>
-				</v-card-text>
-				<v-card-actions>
-					<v-spacer />
-					<v-btn text @click="cancelOutbound">{{ $t('plugins.WorkshopActivity.activity.outbound_cancel') }}</v-btn>
-					<v-btn color="primary" @click="confirmOutbound">{{ $t('plugins.WorkshopActivity.activity.outbound_enable') }}</v-btn>
-				</v-card-actions>
-			</v-card>
-		</v-dialog>
+		<wf-confirm
+			:confirm="activate.confirm" :effects="[$t('plugins.WorkshopActivity.activity.outbound_photos'), $t('plugins.WorkshopActivity.activity.outbound_topic')]"
+			:verb="$t('plugins.WorkshopActivity.activity.outbound_enable')" @accept="activate.accept()" @cancel="cancelOutbound"
+		/>
 		<v-card-text v-if="!notice" class="grey--text">
 			{{ $t('plugins.WorkshopActivity.activity.waiting_for_backend') }}
 		</v-card-text>
@@ -35,14 +25,44 @@
 				<a href="https://ntfy.sh" target="_blank" rel="noopener">ntfy</a>
 				{{ $t('plugins.WorkshopActivity.activity.android_ios_install_and_subscribe') }}</span></div>
 			<!-- one reason for every control that waits for the alerts to be on / for a topic (N3), not one under each -->
-			<div v-if="!notice.config.active || !notice.config.topic_set" class="wf-note is-warn mb-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ $t(notice.config.active ? 'plugins.WorkshopActivity.activity.topic_missing_reason' : 'plugins.WorkshopActivity.activity.alerts_off_reason') }}</span></div>
+			<div v-if="usesPhone && (!notice.config.active || !notice.config.topic_set)" class="wf-note is-warn mb-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon><span>{{ $t(notice.config.active ? 'plugins.WorkshopActivity.activity.topic_missing_reason' : 'plugins.WorkshopActivity.activity.alerts_off_reason') }}</span></div>
+
+			<!-- Where to notify: the phone (ntfy, sent by the service), this device (a card of the notices center of this screen) or both -->
+			<section class="act-section" style="--act-sec:#00897B">
+				<div class="act-section-title">
+					<span class="act-badge"><v-icon small color="white">mdi-bell-badge-outline</v-icon></span>
+					{{ $t('plugins.WorkshopActivity.activity.notify_where_title') }}
+				</div>
+				<v-radio-group :value="channel" row hide-details class="act-channel mt-0 pt-0" :disabled="!channelAllowed" @change="setChannel">
+					<v-radio value="phone" :disabled="!phoneReadyNow" :label="$t('plugins.WorkshopActivity.activity.notify_phone')" />
+					<v-radio value="device" :label="$t('plugins.WorkshopActivity.activity.notify_device')" />
+					<v-radio value="both" :disabled="!phoneReadyNow" :label="$t('plugins.WorkshopActivity.activity.notify_both')" />
+				</v-radio-group>
+				<div class="wf-note is-info mt-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t('plugins.WorkshopActivity.activity.notify_where_hint') }}</span></div>
+				<div v-if="!phoneReadyNow" class="wf-note is-warn mt-2" role="note">
+					<v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-alert-outline</v-icon>
+					<span>{{ $t('plugins.WorkshopActivity.activity.notify_phone_unavailable') }}
+						<a href="#" @click.prevent="goPhoneSetup">{{ $t('plugins.WorkshopActivity.activity.notify_phone_setup_link') }}</a></span>
+				</div>
+				<!-- note 13 (2026-11-23): how a card looks, where it shows and how many wait is ONE choice of this screen for every notice (NoticeOptions.vue):
+				     the way to it on the service page, or the options here when that page is not in this DWC -->
+				<div v-if="usesDevice" class="mt-2">
+					<p class="wf-help wf-help-line mb-2">{{ $t('plugins.WorkshopActivity.activity.notify_device_look') }}</p>
+					<v-btn v-if="screenPage" small outlined :to="screenPage"><v-icon small left>mdi-monitor-cellphone</v-icon>{{ $t('plugins.WorkshopActivity.activity.notify_device_look_open') }}</v-btn>
+					<notice-options v-else />
+				</div>
+				<div class="act-actions mt-3">
+					<v-btn small outlined :loading="testing" :disabled="!phoneReadyNow || !testAllowed" @click="test"><v-icon small left>mdi-cellphone-message</v-icon>{{ $t('plugins.WorkshopActivity.activity.notify_test_phone') }}</v-btn>
+					<v-btn small outlined @click="previewDevice"><v-icon small left>mdi-monitor-dashboard</v-icon>{{ $t('plugins.WorkshopActivity.activity.notify_test_device') }}</v-btn>
+				</div>
+				<lock-reason :ops="channelOps" min="technician" class="mt-2" :subject="$t('plugins.WorkshopActivity.subjects.notice_channel')" />
+			</section>
 
 			<!-- Destination -->
-			<section class="act-section" style="--act-sec:#1E88E5">
+			<section ref="phoneSetup" class="act-section" style="--act-sec:#1E88E5">
 				<div class="act-section-title">
 					<span class="act-badge"><v-icon small color="white">mdi-server-network</v-icon></span>
 					{{ $t('plugins.WorkshopActivity.activity.server') }} / {{ $t('plugins.WorkshopActivity.activity.topic_keep_private') }}
-					<help-tip :title="ht('server_title')" :what="ht('server_what')" :why="ht('server_why')" :how="ht('server_how')" />
 				</div>
 				<v-row dense>
 					<v-col cols="12" sm="5">
@@ -55,10 +75,10 @@
 				<div class="act-actions mt-3">
 					<v-btn small color="primary" :disabled="!destinationChanged || !destinationAllowed" @click="saveDestination">{{ $t('plugins.WorkshopActivity.activity.save_destination') }}</v-btn>
 					<v-btn small outlined :loading="testing" :disabled="!testAllowed" @click="test"><v-icon small left>mdi-send-check-outline</v-icon>{{ $t('plugins.WorkshopActivity.activity.test') }}</v-btn>
-					<v-btn small outlined :color="topicArmed ? 'error' : undefined" :disabled="!destinationAllowed" @click="newTopic"
-						:title="$t('plugins.WorkshopActivity.activity.new_topic_hint')"
-					>{{ topicArmed ? $t('plugins.WorkshopActivity.activity.tap_again_to_change_topic') : $t('plugins.WorkshopActivity.activity.generate_new_topic') }}</v-btn>
-					<help-tip :title="ht('new_topic_title')" :what="ht('new_topic_what')" :why="ht('new_topic_why')" :if-missing="ht('new_topic_missing')" :how="ht('new_topic_how')" />
+					<wf-action-button
+						:action="topicAction" :label="$t('plugins.WorkshopActivity.activity.generate_new_topic')" :arm-label="$t('plugins.WorkshopActivity.activity.tap_again_to_change_topic')" danger
+						:disabled="!destinationAllowed" :title="$t('plugins.WorkshopActivity.activity.new_topic_hint')" @run="newTopic"
+					/>
 				</div>
 				<div class="text-caption mt-2" v-if="notice.config.topic_set && savedTopic">
 					<a target="_blank" rel="noopener"
@@ -81,7 +101,6 @@
 				<div class="act-section-title">
 					<span class="act-badge"><v-icon small color="white">mdi-weather-night</v-icon></span>{{ $t('plugins.WorkshopActivity.activity.quiet_hours') }}
 					<v-chip v-if="notice.in_schedule" x-small outlined color="info" class="ml-2">{{ $t('plugins.WorkshopActivity.activity.quiet_now') }}</v-chip>
-					<help-tip :title="ht('quiet_title')" :what="ht('quiet_what')" :why="ht('quiet_why')" :how="ht('quiet_how')" />
 					<v-spacer />
 					<v-switch
 						:input-value="scheduleCfg.active" dense hide-details class="mt-0 pt-0"
@@ -90,38 +109,14 @@
 					/>
 				</div>
 				<div class="act-grid">
-					<v-menu v-model="hourSinceMenu" :close-on-content-click="false" transition="scale-transition" offset-y min-width="auto" :disabled="hoursOff">
-						<template v-slot:activator="{ on, attrs }">
-							<v-text-field
-								v-model="hourSince" :label="$t('plugins.WorkshopActivity.activity.from')" readonly dense outlined hide-details color="primary"
-								:disabled="hoursOff" v-bind="attrs" v-on="on"
-							>
-								<template v-slot:prepend-inner>
-									<v-icon small color="primary">mdi-clock-outline</v-icon>
-								</template>
-							</v-text-field>
-						</template>
-						<v-time-picker v-model="hourSince" format="24hr" no-title color="primary" @click:minute="hourSinceMenu = false" />
-					</v-menu>
-					<v-menu v-model="hourUntilMenu" :close-on-content-click="false" transition="scale-transition" offset-y min-width="auto" :disabled="hoursOff">
-						<template v-slot:activator="{ on, attrs }">
-							<v-text-field
-								v-model="hourUntil" :label="$t('plugins.WorkshopActivity.activity.to')" readonly dense outlined hide-details color="primary"
-								:disabled="hoursOff" v-bind="attrs" v-on="on"
-							>
-								<template v-slot:prepend-inner>
-									<v-icon small color="primary">mdi-clock-outline</v-icon>
-								</template>
-							</v-text-field>
-						</template>
-						<v-time-picker v-model="hourUntil" format="24hr" no-title color="primary" @click:minute="hourUntilMenu = false" />
-					</v-menu>
+					<!-- a time written as HH:MM, the same field in every plugin (TimeField.vue, owner 2026-11-23): the Vuetify clock was the only way in -->
+					<time-field v-model="hourSince" :label="$t('plugins.WorkshopActivity.activity.from')" :disabled="hoursOff" />
+					<time-field v-model="hourUntil" :label="$t('plugins.WorkshopActivity.activity.to')" :disabled="hoursOff" />
 					<v-select
 						:value="scheduleCfg.mode" :items="MODES_SCHEDULE" :label="$t('plugins.WorkshopActivity.activity.during_those_hours')" dense outlined hide-details
 						:disabled="hoursOff"
 						@change="v => saveSchedule({ mode: v })"
 					/>
-					<help-tip :title="ht('quiet_mode_title')" :what="ht('quiet_mode_what')" :why="ht('quiet_mode_why')" />
 				</div>
 				<div class="act-actions mt-3">
 					<v-btn small outlined :disabled="!scheduleChanged || hoursOff" @click="saveSchedule({})">{{ $t('plugins.WorkshopActivity.activity.save_hours') }}</v-btn>
@@ -135,7 +130,6 @@
 				<div class="act-section-title">
 					<span class="act-badge"><v-icon small color="white">mdi-bell-ring-outline</v-icon></span>
 					{{ $t('plugins.WorkshopActivity.activity.which_events_to_notify_and_how') }}
-					<help-tip :title="ht('events_title')" :what="ht('events_what')" :why="ht('events_why')" :how="ht('events_how')" />
 				</div>
 				<div class="wf-note is-info mb-3" role="note"><v-icon :size="16" class="wf-note-icon" aria-hidden="true">mdi-information-outline</v-icon><span>{{ $t(hasCamera ? 'plugins.WorkshopActivity.activity.attachment_hint' : 'plugins.WorkshopActivity.activity.attachment_hint_no_camera', { s: notice.config.video_s }) }}</span></div>
 				<div class="act-grid mb-3">
@@ -150,7 +144,6 @@
 						:disabled="eventsOff"
 						@change="setVideo"
 					/>
-					<help-tip :title="ht('video_title')" :what="ht('video_what')" :why="ht('video_why')" />
 				</div>
 				<div class="act-events">
 				<div
@@ -178,10 +171,10 @@
 						/>
 						<span v-if="resultKind[t.kind]" class="text-caption" :class="resultKind[t.kind].ok ? 'success--text' : 'error--text'">{{ resultKind[t.kind].text }}</span>
 						<v-btn
-							x-small outlined :loading="testingKind === t.kind" :disabled="!notice.config.active || !testAllowed || !notice.config.topic_set || !!testingKind"
+							small outlined :loading="testingKind === t.kind" :disabled="!notice.config.active || !testAllowed || !notice.config.topic_set || !!testingKind"
 							:title="$t('plugins.WorkshopActivity.activity.test_type_help')" @click="testKind(t.kind)"
 						>
-							<v-icon x-small left>mdi-send-check-outline</v-icon>{{ $t('plugins.WorkshopActivity.activity.test') }}
+							<v-icon small left>mdi-send-check-outline</v-icon>{{ $t('plugins.WorkshopActivity.activity.test') }}
 						</v-btn>
 					</div>
 					<div v-if="notice.config.kinds[t.kind] && option(t.kind)" class="act-grid act-notice-options">
@@ -207,12 +200,12 @@
 							:title="$t('plugins.WorkshopActivity.activity.respects_quiet_hours')"
 							@change="v => setOption(t.kind, 'H', v)"
 						/>
-						<help-tip :title="ht('opt_attachment_title')" :what="ht('opt_attachment_what')" :why="ht('opt_attachment_why')" :how="ht('opt_attachment_how')" />
 					</div>
 				</div>
 				</div>
 				<lock-reason :ops="eventsOps" min="technician" class="mt-2" :subject="$t('plugins.WorkshopActivity.subjects.alert_events')" />
 			</section>
+			<help-fold class="mt-3" :items="[{ title: ht('where_title'), what: ht('where_what'), why: ht('where_why'), how: ht('where_how') }, { title: ht('notices_title'), what: ht('notices_what'), why: ht('notices_why'), how: ht('notices_how') }, { title: ht('server_title'), what: ht('server_what'), why: ht('server_why'), how: ht('server_how') }, { title: ht('new_topic_title'), what: ht('new_topic_what'), why: ht('new_topic_why'), ifMissing: ht('new_topic_missing'), how: ht('new_topic_how') }, { title: ht('quiet_title'), what: ht('quiet_what'), why: ht('quiet_why'), how: ht('quiet_how') }, { title: ht('quiet_mode_title'), what: ht('quiet_mode_what'), why: ht('quiet_mode_why') }, { title: ht('events_title'), what: ht('events_what'), why: ht('events_why'), how: ht('events_how') }, { title: ht('video_title'), what: ht('video_what'), why: ht('video_why') }, { title: ht('opt_attachment_title'), what: ht('opt_attachment_what'), why: ht('opt_attachment_why'), how: ht('opt_attachment_how') }]" />
 		</v-card-text>
 	</v-card>
 </template>
@@ -230,11 +223,20 @@ import i18n from '../../i18n'
 import ErrorNotice from './ErrorNotice.vue' // vue/_shared
 import { accessCanMixin } from './reason-mixin.js' // the answers of the service, by operation (vue/_shared36)
 import LockReason from './LockReason.vue' // vue/_shared36
-import { ACTIVE_OPS, DESTINATION_OPS, TEST_OPS, HOURS_OPS, EVENTS_OPS, groupAllowed } from './access-groups.js'
-import HelpTip from './HelpTip.vue' // vue/_shared36
+import { ACTIVE_OPS, DESTINATION_OPS, TEST_OPS, HOURS_OPS, CHANNEL_OPS, EVENTS_OPS, groupAllowed } from './access-groups.js'
+import HelpFold from './HelpFold.vue' // vue/_shared36
+import TimeField from './TimeField.vue' // vue/_shared36
+import WfActionButton from './WfActionButton.vue' // vue/_shared36 (FASE2)
+import WfConfirm from './WfConfirm.vue' // vue/_shared36 (FASE2)
+import WfResult from './WfResult.vue' // vue/_shared36 (FASE2)
+import { createAction } from './workshop-action.js' // vue/_shared36 (FASE2)
 import { api } from './workshop-api.js'
 import { pluginActive } from './workshop-ids.js'
 import { noticeOf } from './activity-notice.js'
+import { channelOf, deviceOn, phoneOn, phoneReady } from './device-notice.js'
+import { previewDeviceNotice } from './notice-host.js'
+import NoticeOptions from './NoticeOptions.vue' // vue/_shared36: the options of THIS screen for every notice
+import { pathExists } from './workshop-ids.js' // vue/_shared36
 import { styles, STYLE_OTHER } from './event-styles.js'
 
 // Colour of the priority tag; icon and colour of the event types the history has no style for
@@ -268,9 +270,9 @@ const SECONDS_VIDEO = [2, 3, 4, 5, 6, 8, 10].map(n => ({ value: n, text: n + ' s
 export default {
 	mixins: [accessCanMixin],
 	// nothing of the destination, the last failure or the test results survives a change of person (ESTANDAR 3)
-	sessionData: ['cameras', 'destServer', 'destTopic', 'hourSince', 'hourUntil', 'noticeError', 'resultKind', 'testing', 'testingKind', 'topicArmed'],
+	sessionData: ['cameras', 'destServer', 'destTopic', 'hourSince', 'hourUntil', 'noticeError', 'resultKind', 'testing', 'testingKind'],
 	sessionErrors: ['noticeError', 'resultKind'], // what a refusal or a failure said: cleared when the person signs in, out or changes role (role-mixin.js)
-	components: { HelpTip, ErrorNotice, LockReason },
+	components: { HelpFold, TimeField, ErrorNotice, LockReason, WfActionButton, WfConfirm, WfResult, NoticeOptions },
 	data() {
 		return {
 			cameras: [], // [{id, name}] of the camera relay (empty = no camera service)
@@ -278,17 +280,23 @@ export default {
 			destTopic: '',
 			savedTopic: '', // the topic as the service has it: it is not in the published data any more (CB-4), a technician asks for it (notifications.get)
 			testing: false,
-			topicArmed: false,
-			outboundOpen: false, // the confirmation before the alerts are turned on
+			// turning the alerts on sends data to a third-party server: the action asks first (WfConfirm) and only then tells the service it was confirmed
+			activate: createAction({
+				run: async (args, ctx) => {
+					const data = await this.noticeCmd('active', args.on && ctx.confirmed ? { on: true, acknowledge_outbound: true } : { on: !!args.on });
+					if (!data || data.error) { this.switchKey += 1; throw this.noticeError || new Error('notifications.active'); } // the error notice tells it
+					return { data };
+				},
+				confirm: args => (args.on ? { level: 3, title: i18n.t('plugins.WorkshopActivity.activity.outbound_title'), text: i18n.t('plugins.WorkshopActivity.activity.outbound_what', { server: (this.notice && this.notice.config && this.notice.config.server) || 'https://ntfy.sh' }) } : null)
+			}),
+			topicAction: createAction({ run: async () => ({ data: await this.noticeCmd('new_topic') }), arm: 'double' }),
 			switchKey: 0, // re-creates the switch when the confirmation is cancelled, so it goes back to off
 			noticeError: null, // the last failed call (an Error, or a text of the page)
 			hourSince: '22:00',
 			hourUntil: '07:00',
-			hourSinceMenu: false,
-			hourUntilMenu: false,
 			testingKind: '', // type whose test is being sent
 			resultKind: {}, // type -> {ok, text} of its last test
-			activeOps: ACTIVE_OPS, destinationOps: DESTINATION_OPS, testOps: TEST_OPS, hoursOps: HOURS_OPS, eventsOps: EVENTS_OPS,
+			activeOps: ACTIVE_OPS, destinationOps: DESTINATION_OPS, testOps: TEST_OPS, hoursOps: HOURS_OPS, channelOps: CHANNEL_OPS, eventsOps: EVENTS_OPS,
 			PRIORITY_COLORS: PRIORITY_COLORS,
 			ATTACHMENTS: attachments, MODES_SCHEDULE: MODES_SCHEDULE, SECONDS_VIDEO: SECONDS_VIDEO
 		};
@@ -299,10 +307,18 @@ export default {
 		destinationAllowed() { return groupAllowed(DESTINATION_OPS, op => this.canDo(op)); },
 		testAllowed() { return groupAllowed(TEST_OPS, op => this.canDo(op)); },
 		hoursAllowed() { return groupAllowed(HOURS_OPS, op => this.canDo(op)); },
+		channelAllowed() { return groupAllowed(CHANNEL_OPS, op => this.canDo(op)); },
 		eventsAllowed() { return groupAllowed(EVENTS_OPS, op => this.canDo(op)); },
-		// the controls of a section stay off while the alerts are off or the service says no
-		hoursOff() { return !(this.notice && this.notice.config.active) || !this.hoursAllowed; },
-		eventsOff() { return !(this.notice && this.notice.config.active) || !this.eventsAllowed; },
+		// where the notices go: the phone (ntfy), this device (a card here) or both; the phone needs the alerts on and a destination
+		channel() { return channelOf(this.notice); },
+		usesPhone() { return phoneOn(this.channel); },
+		usesDevice() { return deviceOn(this.channel); },
+		phoneReadyNow() { return phoneReady(this.notice); },
+		// something announces: the phone alerts are on, or this device is a destination (it needs no topic and no outbound confirmation)
+		noticesOn() { return !!this.notice && (!!this.notice.config.active || this.usesDevice); },
+		// the controls of a section stay off while nothing announces or the service says no
+		hoursOff() { return !this.noticesOn || !this.hoursAllowed; },
+		eventsOff() { return !this.noticesOn || !this.eventsAllowed; },
 		// the Camera plugin is optional: its page is named only when it is there
 		hasCamera() {
 			return pluginActive(this.$store, 'camera');
@@ -320,6 +336,10 @@ export default {
 		},
 		scheduleCfg() {
 			return (this.notice && this.notice.config.schedule) || { active: false, since: '22:00', until: '07:00', mode: 'mute' };
+		},
+		// the section "This screen" of the service page, where the notices of every plugin are set; '' when that page is not in this DWC
+		screenPage() {
+			return pathExists(this.$router, '/Plugins/WorkshopService') ? '/Plugins/WorkshopService?s=screen' : '';
 		},
 		scheduleChanged() {
 			return this.hourSince !== this.scheduleCfg.since || this.hourUntil !== this.scheduleCfg.until;
@@ -344,11 +364,14 @@ export default {
 		this.readCameras();
 	},
 	beforeDestroy() {
-		clearTimeout(this._topicTimer);
+		this.activate.dispose();
+		this.topicAction.dispose();
 	},
 	methods: {
 		// the fields are the published state of the service (the watcher of `notice` fills them only when it changes): fill them again for the new person
 		onSessionChange() {
+			this.activate.reset(); // what was in the air belonged to the person who left
+			this.topicAction.reset();
 			const n = this.notice;
 			if (n) {
 				this.destServer = n.config.server;
@@ -383,15 +406,9 @@ export default {
 			return t.label; // already in the language of this DWC (notice)
 		},
 		async newTopic() {
-			if (!this.topicArmed) {
-				this.topicArmed = true;
-				clearTimeout(this._topicTimer);
-				this._topicTimer = setTimeout(() => { this.topicArmed = false; }, 4000);
-				return;
-			}
-			this.topicArmed = false;
-			const data = await this.noticeCmd('new_topic');
-			if (data && data.config) this.useTopic(data.config.topic);
+			await this.topicAction.run({});
+			const data = this.topicAction.data;
+			if (this.topicAction.state === 'done' && data && data.config) this.useTopic(data.config.topic);
 		},
 		// API of WorkshopService: notifications.<op> (answers the JSON of the settings)
 		async noticeCmd(op, args) {
@@ -406,18 +423,25 @@ export default {
 			}
 		},
 		setActive(v) {
-			if (v) { this.outboundOpen = true; return null; } // on: ask first
-			return this.noticeCmd('active', { on: false });
+			return this.activate.run({ on: !!v }); // on: asks first (the confirmation), off: goes through
 		},
 		cancelOutbound() {
-			this.outboundOpen = false;
+			this.activate.cancel();
 			this.switchKey += 1;
 		},
-		async confirmOutbound() {
-			this.outboundOpen = false;
-			const data = await this.noticeCmd('active', { on: true, acknowledge_outbound: true });
-			if (!data || data.error) this.switchKey += 1;
-			return data;
+		setChannel(v) {
+			if (v === this.channel) return null;
+			return this.noticeCmd('option', { channel: v });
+		},
+		// the phone setup (server, topic) is the next section: the person who cannot choose Phone yet is taken there
+		goPhoneSetup() {
+			const el = this.$refs.phoneSetup;
+			if (!el || typeof el.scrollIntoView !== 'function') return;
+			const calm = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+			el.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+		},
+		previewDevice() {
+			previewDeviceNotice();
 		},
 		setKind(kind, v) {
 			return this.noticeCmd('type', { type: kind, on: !!v });
@@ -531,6 +555,9 @@ export default {
 	border-radius: 8px;
 	background: var(--act-sec, #1E88E5);
 }
+.act-channel {
+	gap: 4px 24px;
+}
 .act-actions {
 	display: flex;
 	flex-wrap: wrap;
@@ -600,7 +627,7 @@ export default {
 	align-items: center;
 	padding: 1px 10px;
 	border-radius: 10px;
-	font-size: 11px;
+	font-size: 12px;
 	font-weight: 600;
 	color: #fff;
 	background: var(--tag, #78909C);

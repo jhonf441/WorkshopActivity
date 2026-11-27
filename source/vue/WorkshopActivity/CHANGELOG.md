@@ -1,5 +1,47 @@
 # WorkshopActivity -- historial de versiones
 
+## 2.12.1 -- 2026-11-24
+
+- Previous layout back (Today, History, Phone alerts, Live jobs as before) with the new style: buttons 32 (touch area 40), row Delete as a red text button, last event in words (today / yesterday / date), no forced uppercase in separators and titles
+
+## 2.11.2 -- 2026-11-23
+
+- optional files are never requested when absent
+
+## 2.11.1 -- 2026-11-22
+
+- select arrows, one focus ring per field, shared family stylesheet split
+
+## 2.11.0 -- 2026-11-22
+
+- Where to notify: phone, this device or both; shared notice card
+
+## 2.10.3 -- 2026-11-22
+
+- Rebuild with shared update: start-up card split into modules, neutral Spanish texts, service texts resynced, unused .wf-index rule dropped
+
+## 2.10.2 -- 2026-11-22
+
+- Tuteo in texts (no voseo in es.json).
+
+## 2.10.1 -- 2026-11-22
+
+- Visual review round: single hover and focus for inputs and controls (family styles), 44 px switch and checkbox rows, range picker field 44 px.
+
+## 2.10.0 -- 2026-11-21
+
+- Version 2.9.0 was skipped: it was bumped but never built (no zip). 2.10.0 carries all the 2.9.0 changes listed below.
+- Style unification: delete, clear and new topic are double-touch actions with the family button and result line, outbound confirmation uses the family confirm sheet, help popovers become one fold per card, history folds into stacked rows on narrow windows, nothing under 12 px.
+
+## 2.9.0 -- 2026-11-21
+
+- Skipped: no zip was ever built for this version; see 2.10.0.
+- Style unification: delete, clear and new topic are double-touch actions with the family button and result line, outbound confirmation uses the family confirm sheet, help popovers become one fold per card, history folds into stacked rows on narrow windows, nothing under 12 px.
+
+## 2.8.17 -- 2026-11-20
+
+- Unchecked state when the machine cannot be read, no false 'missing'; SD reads keep the last value; positions and materials refuse to save without reading; not-in-use setup items
+
 ## 2.8.16 -- 2026-11-20
 
 - Own calendar in the date range picker (no native date/time fields); PiHealth: the stored-data table moves to the service
@@ -62,7 +104,7 @@
 
 ## 2.8.1 -- 2026-11-11
 
-- Owner report 2026-11-11: shutdown without session, kiosk PIN pad, hive confirm color, wheel release and Z keys, version in every page bar
+- User report 2026-11-11: shutdown without session, kiosk PIN pad, hive confirm color, wheel release and Z keys, version in every page bar
 
 ## 2.8.0 -- 2026-11-11
 

@@ -8,6 +8,7 @@
 //   DESTINATION_OPS   server and topic: save the destination, generate a new topic
 //   TEST_OPS          send a test alert (the general one and the one of each type)
 //   HOURS_OPS         the quiet hours
+//   CHANNEL_OPS       where the notices go: the phone, this device or both (notifications.option without a type)
 //   EVENTS_OPS        which events notify, their options, the camera and the length of the video
 //   READ_OPS          the readings (history, summary, camera list): no group of buttons, asked once so the page opens with one call
 //   SCREEN_OPS        everything the page asks when it opens, in one call
@@ -17,13 +18,14 @@ export const ACTIVE_OPS = Object.freeze(['notifications.active'])
 export const DESTINATION_OPS = Object.freeze(['notifications.destination', 'notifications.new_topic'])
 export const TEST_OPS = Object.freeze(['notifications.test'])
 export const HOURS_OPS = Object.freeze(['notifications.quiet_hours'])
+export const CHANNEL_OPS = Object.freeze(['notifications.option'])
 export const EVENTS_OPS = Object.freeze(['notifications.type', 'notifications.option', 'notifications.video'])
 export const READ_OPS = Object.freeze(['activity.list', 'activity.summary', 'camera.status'])
 
 // the groups that carry a sentence, by name: the structure test walks this list
-export const GROUPS = Object.freeze({ delete: DELETE_OPS, active: ACTIVE_OPS, destination: DESTINATION_OPS, test: TEST_OPS, hours: HOURS_OPS, events: EVENTS_OPS })
+export const GROUPS = Object.freeze({ delete: DELETE_OPS, active: ACTIVE_OPS, destination: DESTINATION_OPS, test: TEST_OPS, hours: HOURS_OPS, channel: CHANNEL_OPS, events: EVENTS_OPS })
 
-export const SCREEN_OPS = Object.freeze(Array.from(new Set([].concat(DELETE_OPS, ACTIVE_OPS, DESTINATION_OPS, TEST_OPS, HOURS_OPS, EVENTS_OPS, READ_OPS))))
+export const SCREEN_OPS = Object.freeze(Array.from(new Set([].concat(DELETE_OPS, ACTIVE_OPS, DESTINATION_OPS, TEST_OPS, HOURS_OPS, CHANNEL_OPS, EVENTS_OPS, READ_OPS))))
 
 // every operation of the group is allowed by `can` (a function op -> boolean)
 export function groupAllowed(ops, can) {
